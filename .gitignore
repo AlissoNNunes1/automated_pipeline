@@ -1,0 +1,72 @@
+# Dados de processamento (temporarios e grandes)
+data_processing/
+*.mp4
+*.avi
+*.mov
+*.dav
+
+# Modelos YOLO (grandes, baixar separadamente)
+*.pt
+*.weights
+*.onnx
+
+# Logs
+*.log
+automated_pipeline.log
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Ambientes virtuais
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Estado do pipeline
+pipeline_state.json
+review_progress.json
+
+# Outputs temporarios
+chunks/
+active_chunks/
+events/
+proposals/
+annotations/
+
+# Dataset YOLO gerado (pode ser grande)
+yolo_dataset/
+yolo_dataset_reviewed/
+
+# Videos convertidos (temporarios)
+videos_converted/
+
+# Backups
+*.bak
+*.backup
+*.tmp
+
+#    __  ____ ____ _  _ 
+#  / _\/ ___) ___) )( \
+# /    \___ \___ ) \/ (
+# \_/\_(____(____|____/
