@@ -33,7 +33,7 @@ ENV/
 *.swp
 *.swo
 *~
-
+.github/
 # Jupyter Notebooks
 .ipynb_checkpoints/
 *.ipynb
