@@ -17,6 +17,8 @@ import cv2
 import os
 import json
 import logging
+import subprocess
+import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Dict, Optional
@@ -27,7 +29,7 @@ class VideoChunker:
     Divide videos longos em chunks menores indexados por timestamp
     """
 
-    def __init__(self, chunk_duration_seconds: int = 180):
+    def __init__(self, chunk_duration_seconds: int = 180, use_gpu: bool = False):
         """
         Inicializa o VideoChunker
 
@@ -36,6 +38,10 @@ class VideoChunker:
         """
         self.chunk_duration = chunk_duration_seconds
         self.logger = logging.getLogger(__name__)
+        # Se True, tentaremos usar ffmpeg + NVENC para extracao (usa GPU)
+        self.use_gpu = use_gpu
+        # flag para indicar se ffmpeg esta disponivel no PATH
+        self._ffmpeg_available = shutil.which('ffmpeg') is not None
 
     def chunk_video(
         self,
@@ -147,17 +153,27 @@ class VideoChunker:
             self.logger.debug(f"    Duracao: {chunk_duration_actual:.1f}s")
             self.logger.debug(f"    Timestamp: {chunk_start_time.strftime('%H:%M:%S')} - {chunk_end_time.strftime('%H:%M:%S')}")
             self.logger.debug(f"    Arquivo: {chunk_filename}")
-            
-            success = self._extract_chunk(
-                cap,
-                chunk_start_frame,
-                chunk_end_frame,
-                chunk_filepath,
-                fps,
-                (width, height),
-                chunk_idx + 1,
-                num_chunks
-            )
+
+            # Se use_gpu foi ativado e ffmpeg esta disponivel, usar extracao via ffmpeg NVENC
+            if getattr(self, 'use_gpu', False) and self._ffmpeg_available:
+                start_seconds = chunk_start_frame / fps
+                success = self._extract_chunk_gpu(
+                    video_path,
+                    start_seconds,
+                    chunk_duration_actual,
+                    chunk_filepath
+                )
+            else:
+                success = self._extract_chunk(
+                    cap,
+                    chunk_start_frame,
+                    chunk_end_frame,
+                    chunk_filepath,
+                    fps,
+                    (width, height),
+                    chunk_idx + 1,
+                    num_chunks
+                )
 
             if not success:
                 self.logger.warning(f"Falha ao extrair chunk {chunk_idx}")
@@ -284,6 +300,57 @@ class VideoChunker:
 
         except Exception as e:
             self.logger.error(f"Erro ao extrair chunk {chunk_num}/{total_chunks}: {str(e)}")
+            return False
+
+    def _extract_chunk_gpu(
+        self,
+        video_path: str,
+        start_seconds: float,
+        duration_seconds: float,
+        output_path: str
+    ) -> bool:
+        """
+        Extrai um segmento usando ffmpeg + NVENC (quando disponivel)
+
+        Args:
+            video_path: arquivo de entrada
+            start_seconds: tempo inicial em segundos
+            duration_seconds: duracao do segmento em segundos
+            output_path: caminho do arquivo de saida
+
+        Returns:
+            True se sucesso, False caso contrario
+        """
+        try:
+            # Montar comando ffmpeg (-ss antes do -i para seek rapido)
+            cmd = [
+                'ffmpeg', '-y',
+                '-ss', str(start_seconds),
+                '-i', str(video_path),
+                '-t', str(duration_seconds),
+                '-c:v', 'h264_nvenc',
+                '-preset', 'p1',
+                '-cq', '19',
+                '-c:a', 'copy',
+                str(output_path)
+            ]
+
+            self.logger.debug(f"Executando ffmpeg NVENC: {' '.join(cmd)}")
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+            if res.returncode != 0:
+                # Logar uma parte do stderr para diagnostico
+                stderr_preview = res.stderr[:1024].replace('\n', ' ')
+                self.logger.warning(f"ffmpeg retornou codigo {res.returncode}: {stderr_preview}")
+                return False
+
+            return True
+
+        except FileNotFoundError:
+            self.logger.error('ffmpeg nao encontrado no PATH')
+            return False
+        except Exception as e:
+            self.logger.error(f"Erro ao extrair com ffmpeg: {e}")
             return False
 
     def load_chunks_index(self, index_path: str) -> Dict:
