@@ -163,6 +163,19 @@ class VideoChunker:
                     chunk_duration_actual,
                     chunk_filepath
                 )
+                # Fallback automatico: se extracao via ffmpeg falhar, tentar metodo OpenCV
+                if not success:
+                    self.logger.warning("Extracao via GPU falhou, tentando fallback OpenCV")
+                    success = self._extract_chunk(
+                        cap,
+                        chunk_start_frame,
+                        chunk_end_frame,
+                        chunk_filepath,
+                        fps,
+                        (width, height),
+                        chunk_idx + 1,
+                        num_chunks
+                    )
             else:
                 success = self._extract_chunk(
                     cap,
@@ -342,6 +355,12 @@ class VideoChunker:
                 # Logar uma parte do stderr para diagnostico
                 stderr_preview = res.stderr[:1024].replace('\n', ' ')
                 self.logger.warning(f"ffmpeg retornou codigo {res.returncode}: {stderr_preview}")
+                # Remover arquivo de saida parcial se existir
+                try:
+                    if os.path.exists(output_path):
+                        os.remove(output_path)
+                except Exception:
+                    pass
                 return False
 
             return True

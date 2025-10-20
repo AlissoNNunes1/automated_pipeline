@@ -408,6 +408,7 @@ if __name__ == "__main__":
     from video_chunker import VideoChunker
     
     # 1. Carregar metadata de chunks existentes
+    # Por padrao, nao habilitamos GPU aqui (deixe o caller passar use_gpu se necessario)
     chunker = VideoChunker()
     chunks_metadata = chunker.load_chunks_index('data/chunks/chunks_index.json')
     

@@ -232,7 +232,7 @@ class AutomatedPipeline:
                 )
                 return
             
-            chunker = VideoChunker()
+            chunker = VideoChunker(use_gpu=self.config.get('chunking', {}).get('use_gpu', False))
             chunks_data = chunker.load_chunks_index(str(chunks_index))
             chunks = chunks_data['chunks']
         
@@ -356,7 +356,8 @@ class AutomatedPipeline:
         
         try:
             chunker = VideoChunker(
-                chunk_duration_seconds=self.config['chunking']['chunk_duration_seconds']
+                chunk_duration_seconds=self.config['chunking']['chunk_duration_seconds'],
+                use_gpu=self.config.get('chunking', {}).get('use_gpu', False)
             )
             
             # Manter output_dir como Path para operacoes

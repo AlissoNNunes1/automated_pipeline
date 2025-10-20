@@ -23,6 +23,7 @@ chunking:
   chunk_duration_seconds: 180 # 3 minutos por chunk
   codec: "mp4v" # Codec H.264
   preserve_fps: true
+  use_gpu: true # Se true, tentar usar ffmpeg + NVENC para extracao de chunks
 
 # Configuracoes de filtragem de atividade
 activity_filter:
