@@ -1,4 +1,4 @@
-"""
+r"""
 StateManager: Gerencia estado do processamento de videos
 
 Rastreia progresso de cada video .dav atraves do pipeline completo
@@ -383,7 +383,18 @@ class StateManager:
             print("\nVideos que falharam:")
             for video_name in failed:
                 video_state = self.state[video_name]
-                print(f"  - {video_name}: {video_state.get('error', 'Erro desconhecido')}")
+                # Tentar mostrar erro de nivel superior; se ausente, buscar no estagio que falhou
+                err_msg = video_state.get('error')
+                if not err_msg:
+                    # Percorrer estagios na ordem e capturar o primeiro com status failed
+                    for stage in self.ALL_STAGES:
+                        st_data = video_state.get('stages', {}).get(stage, {})
+                        if st_data.get('status') == self.STATUS_FAILED:
+                            # Montar mensagem com nome do estagio e erro registrado, se houver
+                            stage_err = st_data.get('error') or 'falha sem mensagem'
+                            err_msg = f"[{stage}] {stage_err}"
+                            break
+                print(f"  - {video_name}: {err_msg or 'Erro desconhecido'}")
 
         print()
 

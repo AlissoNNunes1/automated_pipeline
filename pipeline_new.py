@@ -167,10 +167,11 @@ class AutomatedPipeline:
                 self._process_single_video(dav_file)
             except Exception as e:
                 self.logger.error(f"Erro ao processar {video_name}: {e}", exc_info=True)
+                # Registrar tipo da excecao para clareza no resumo
                 self.state_manager.mark_stage_failed(
                     video_name,
                     "pipeline",
-                    str(e)
+                    f"{e.__class__.__name__}: {e}"
                 )
         
         # Resumo final
@@ -351,7 +352,7 @@ class AutomatedPipeline:
             self.state_manager.mark_stage_failed(
                 video_name,
                 StateManager.STAGE_CONVERSION,
-                str(e)
+                f"{e.__class__.__name__}: {e}"
             )
             return None
     
@@ -389,7 +390,7 @@ class AutomatedPipeline:
             self.state_manager.mark_stage_failed(
                 video_name,
                 StateManager.STAGE_CHUNKING,
-                str(e)
+                f"{e.__class__.__name__}: {e}"
             )
             return None
     
@@ -437,7 +438,7 @@ class AutomatedPipeline:
             self.state_manager.mark_stage_failed(
                 video_name,
                 StateManager.STAGE_FILTERING,
-                str(e)
+                f"{e.__class__.__name__}: {e}"
             )
             return None
     
@@ -487,7 +488,7 @@ class AutomatedPipeline:
                     self.state_manager.mark_stage_failed(
                         video_name,
                         StateManager.STAGE_DETECTION,
-                        str(e)
+                        f"{e.__class__.__name__}: {e}"
                     )
                     return None
     
@@ -534,7 +535,7 @@ class AutomatedPipeline:
                     self.state_manager.mark_stage_failed(
                         video_name,
                         StateManager.STAGE_LABELING,
-                        str(e)
+                        f"{e.__class__.__name__}: {e}"
                     )
                     return None
     
@@ -730,7 +731,7 @@ class AutomatedPipeline:
             self.state_manager.mark_stage_failed(
                 video_name,
                 StateManager.STAGE_REVIEW,
-                str(e)
+                f"{e.__class__.__name__}: {e}"
             )
             return False
     
