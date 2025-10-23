@@ -87,43 +87,7 @@ class ActivityFilter:
             self.logger.warning("GPUManager nao encontrado - usando deteccao automatica de GPU")
             self.gpu_manager = None
         
-        # Antes de carregar YOLO, aplicar fallback para torchvision.ops.nms caso o operador nativo nao exista
-        try:
-            import torch
-            import torchvision
-            from torchvision import ops as tv_ops
-            try:
-                _ = tv_ops.nms(torch.zeros((1, 4)), torch.zeros((1,)), 0.5)
-            except Exception:
-                def _nms_fallback(boxes: 'torch.Tensor', scores: 'torch.Tensor', iou_threshold: float):
-                    # implementacao simples de nms em pytorch puro
-                    if boxes.numel() == 0:
-                        return torch.empty((0,), dtype=torch.long, device=boxes.device)
-                    x1, y1, x2, y2 = boxes[:, 0], boxes[:, 1], boxes[:, 2], boxes[:, 3]
-                    areas = (x2 - x1).clamp(min=0) * (y2 - y1).clamp(min=0)
-                    order = scores.sort(descending=True).indices
-                    keep = []
-                    while order.numel() > 0:
-                        i = int(order[0])
-                        keep.append(i)
-                        if order.numel() == 1:
-                            break
-                        xx1 = torch.maximum(x1[i], x1[order[1:]])
-                        yy1 = torch.maximum(y1[i], y1[order[1:]])
-                        xx2 = torch.minimum(x2[i], x2[order[1:]])
-                        yy2 = torch.minimum(y2[i], y2[order[1:]])
-                        w = (xx2 - xx1).clamp(min=0)
-                        h = (yy2 - yy1).clamp(min=0)
-                        inter = w * h
-                        iou = inter / (areas[i] + areas[order[1:]] - inter + 1e-6)
-                        mask = iou <= iou_threshold
-                        order = order[1:][mask]
-                    return torch.tensor(keep, device=boxes.device, dtype=torch.long)
-                tv_ops.nms = _nms_fallback  # monkey patch
-                self.logger.warning("torchvision.ops.nms nativo indisponivel, usando fallback pytorch puro")
-        except Exception:
-            # Se torchvision nao estiver disponivel, seguir (ultralytics pode usar nms proprio)
-            pass
+        # Observacao: evitar importar torchvision aqui para nao acionar erro de operador ausente
 
         # Carregar modelo YOLO leve com configuracao GPU
         try:
@@ -448,7 +412,8 @@ if __name__ == "__main__":
     # 1. Carregar metadata de chunks existentes
     # Por padrao, nao habilitamos GPU aqui (deixe o caller passar use_gpu se necessario)
     chunker = VideoChunker()
-    chunks_metadata = chunker.load_chunks_index('data/chunks/chunks_index.json')
+    chunks_index = chunker.load_chunks_index('data/chunks/chunks_index.json')
+    chunks_metadata = chunks_index.get('chunks', [])
     
     # 2. Filtrar chunks inativos
     filter = ActivityFilter(
