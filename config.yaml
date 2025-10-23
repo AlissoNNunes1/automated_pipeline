@@ -95,3 +95,21 @@ performance:
 state:
   file: "pipeline_state.json" # Arquivo de estado do processamento
   auto_resume: true # Retomar processamento automaticamente
+
+# Configuracoes de revisao humana
+review:
+  auto_open: true # Abrir GUI de revisao automaticamente sem perguntar
+
+# Configuracoes de tentativas (retries)
+retries:
+  detection:
+    max_attempts: 3
+    backoff_seconds: 8
+  labeling:
+    max_attempts: 3
+    backoff_seconds: 5
+
+#    __  ____ ____ _  _
+#  / _\/ ___) ___) )( \
+# /    \___ \___ ) \/ (
+# \_/\_(____(____|____/

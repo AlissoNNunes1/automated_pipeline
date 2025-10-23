@@ -1,4 +1,4 @@
-"""
+r"""
 Helpers: Funcoes utilitarias comuns do pipeline
 
 Funcoes para validacao de arquivos, conversao de formatos,
@@ -13,14 +13,17 @@ manipulacao de paths, etc
 import os
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 import hashlib
 
 
 logger = logging.getLogger(__name__)
 
 
-def ensure_dir(directory: str) -> Path:
+StrPath = Union[str, os.PathLike]
+
+
+def ensure_dir(directory: StrPath) -> Path:
     """
     Garante que diretorio existe, criando se necessario
     
@@ -35,7 +38,7 @@ def ensure_dir(directory: str) -> Path:
     return path
 
 
-def find_files(directory: str, extensions: List[str], recursive: bool = True) -> List[Path]:
+def find_files(directory: StrPath, extensions: List[str], recursive: bool = True) -> List[Path]:
     """
     Encontra arquivos com extensoes especificas
     
@@ -72,7 +75,7 @@ def find_files(directory: str, extensions: List[str], recursive: bool = True) ->
     return sorted(list(files_set))
 
 
-def get_file_size_mb(filepath: str) -> float:
+def get_file_size_mb(filepath: StrPath) -> float:
     """
     Obtem tamanho de arquivo em MB
     
@@ -90,7 +93,7 @@ def get_file_size_mb(filepath: str) -> float:
         return 0.0
 
 
-def file_exists(filepath: str) -> bool:
+def file_exists(filepath: StrPath) -> bool:
     """
     Verifica se arquivo existe
     
@@ -103,7 +106,7 @@ def file_exists(filepath: str) -> bool:
     return Path(filepath).exists()
 
 
-def get_file_hash(filepath: str, algorithm: str = 'md5') -> Optional[str]:
+def get_file_hash(filepath: StrPath, algorithm: str = 'md5') -> Optional[str]:
     """
     Calcula hash de um arquivo
     
@@ -153,7 +156,7 @@ def format_duration(seconds: float) -> str:
     return " ".join(parts)
 
 
-def sanitize_filename(filename: str) -> str:
+def sanitize_filename(filename: StrPath) -> str:
     """
     Remove caracteres invalidos de nome de arquivo
     
@@ -166,13 +169,14 @@ def sanitize_filename(filename: str) -> str:
     # Caracteres invalidos no Windows
     invalid_chars = '<>:"/\\|?*'
     
+    filename_str = str(filename)
     for char in invalid_chars:
-        filename = filename.replace(char, '_')
+        filename_str = filename_str.replace(char, '_')
     
-    return filename
+    return filename_str
 
 
-def get_video_base_name(video_path: str) -> str:
+def get_video_base_name(video_path: StrPath) -> str:
     """
     Obtem nome base de um video sem extensao
     
@@ -185,7 +189,7 @@ def get_video_base_name(video_path: str) -> str:
     return Path(video_path).stem
 
 
-def create_output_structure(base_dir: str) -> dict:
+def create_output_structure(base_dir: StrPath) -> dict:
     """
     Cria estrutura completa de diretorios para output
     
@@ -211,11 +215,11 @@ def create_output_structure(base_dir: str) -> dict:
     for dir_path in dirs.values():
         dir_path.mkdir(parents=True, exist_ok=True)
     
-    logger.info(f"Estrutura de diretorios criada em: {base_dir}")
+    logger.info(f"Estrutura de diretorios criada em: {base_path}")
     return dirs
 
 
-def count_files_in_dir(directory: str, extensions: Optional[List[str]] = None) -> int:
+def count_files_in_dir(directory: StrPath, extensions: Optional[List[str]] = None) -> int:
     """
     Conta arquivos em um diretorio
     
@@ -236,7 +240,7 @@ def count_files_in_dir(directory: str, extensions: Optional[List[str]] = None) -
         return len([f for f in Path(directory).iterdir() if f.is_file()])
 
 
-def validate_video_file(video_path: str) -> tuple:
+def validate_video_file(video_path: StrPath) -> tuple:
     """
     Valida se arquivo de video e valido
     
@@ -257,7 +261,7 @@ def validate_video_file(video_path: str) -> tuple:
         return False, f"Path nao e um arquivo: {video_path}"
     
     # Verificar tamanho minimo (1 MB)
-    size_mb = get_file_size_mb(str(video_path))
+    size_mb = get_file_size_mb(video_path)
     if size_mb < 1:
         return False, f"Arquivo muito pequeno ({size_mb:.2f} MB)"
     

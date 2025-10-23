@@ -23,6 +23,9 @@ import sys
 import json
 import os
 import logging
+import shutil
+import subprocess
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -67,7 +70,7 @@ class AutomatedPipeline:
         self.videos_converted_dir = Path(self.config['directories']['videos_converted'])
         self.data_dir = Path(self.config['directories']['data_processing'])
         
-        # Garantir que diretorios existem
+        # Garantir que diretorios existem (helpers aceitam PathLike)
         ensure_dir(self.videos_full_dir)
         ensure_dir(self.videos_converted_dir)
         ensure_dir(self.data_dir)
@@ -93,6 +96,9 @@ class AutomatedPipeline:
         self.logger.info("INICIANDO PIPELINE AUTOMATIZADO")
         self.logger.info("=" * 80)
         
+        # Diagnosticos iniciais de ambiente e autoconfiguracao
+        self._preflight_diagnostics()
+        
         # Mostrar resumo do estado atual
         self.state_manager.print_summary()
         
@@ -104,7 +110,7 @@ class AutomatedPipeline:
             self.logger.info(f"Nenhum arquivo .dav encontrado em {self.videos_full_dir}")
             self.logger.info("Verificando arquivos MP4 ja convertidos...")
             
-            mp4_files = find_files(str(self.videos_converted_dir), ['.mp4', '.MP4'], recursive=True)
+            mp4_files = find_files(self.videos_converted_dir, ['.mp4', '.MP4'], recursive=True)
             
             if not mp4_files:
                 self.logger.warning("Nenhum arquivo .dav ou .mp4 encontrado")
@@ -212,7 +218,7 @@ class AutomatedPipeline:
         
         # Criar estrutura de output para este video
         video_data_dir = self.data_dir / video_base
-        output_dirs = create_output_structure(str(video_data_dir))
+        output_dirs = create_output_structure(video_data_dir)
         
         # ESTAGIO 2: CHUNKING
         if next_stage == StateManager.STAGE_CHUNKING:
@@ -331,12 +337,12 @@ class AutomatedPipeline:
                     StateManager.STAGE_CONVERSION,
                     output_path=result
                 )
-                return Path(result)
+                return Path(result) if result else None
             else:
                 self.state_manager.mark_stage_failed(
                     video_name,
                     StateManager.STAGE_CONVERSION,
-                    result
+                    str(result or 'conversao falhou')
                 )
                 return None
         
@@ -440,87 +446,97 @@ class AutomatedPipeline:
         self.logger.info("\n--- ESTAGIO 4: EVENT DETECTION ---")
         self.state_manager.mark_stage_start(video_name, StateManager.STAGE_DETECTION)
         
-        try:
-            cfg = self.config['event_detector']
-            
-            self.logger.info(f"Carregando EventDetector com modelo {cfg['detector_model']}...")
-            
-            detector = EventDetector(
-                detector_model=cfg['detector_model'],
-                tracker_config=cfg['tracker'],
-                confidence_threshold=cfg['conf_threshold'],
-                min_duration_seconds=cfg['min_event_duration_seconds'],
-                sample_rate=cfg.get('sample_rate', 1)  # Pegar do config ou usar 1 (todos os frames)
-            )
-            
-            self.logger.info("EventDetector carregado com sucesso!")
-            
-            events, stats = detector.detect_events_batch(
-                active_chunks,
-                output_dir=str(output_dir)
-            )
-            
-            # Construir caminho do relatorio usando Path
-            events_path = output_dir / 'events_summary.json'
-            
-            self.state_manager.mark_stage_complete(
-                video_name,
-                StateManager.STAGE_DETECTION,
-                output_path=str(events_path),
-                metadata={'total_events': len(events)}
-            )
-            return events
-        
-        except Exception as e:
-            self.logger.error(f"Erro na detection: {e}", exc_info=True)
-            self.state_manager.mark_stage_failed(
-                video_name,
-                StateManager.STAGE_DETECTION,
-                str(e)
-            )
-            return None
+        cfg = self.config['event_detector']
+        retry_cfg = self.config.get('retries', {}).get('detection', {})
+        max_attempts = int(retry_cfg.get('max_attempts', 2))
+        backoff = int(retry_cfg.get('backoff_seconds', 5))
+
+        last_error: Optional[Exception] = None
+        for attempt in range(1, max_attempts + 1):
+            try:
+                self.logger.info(f"Carregando EventDetector com modelo {cfg['detector_model']} (tentativa {attempt}/{max_attempts})...")
+                detector = EventDetector(
+                    detector_model=cfg['detector_model'],
+                    tracker_config=cfg['tracker'],
+                    confidence_threshold=cfg['conf_threshold'],
+                    min_duration_seconds=cfg['min_event_duration_seconds'],
+                    sample_rate=cfg.get('sample_rate', 1)
+                )
+                self.logger.info("EventDetector carregado com sucesso!")
+
+                events, stats = detector.detect_events_batch(
+                    active_chunks,
+                    output_dir=str(output_dir)
+                )
+
+                events_path = output_dir / 'events_summary.json'
+                self.state_manager.mark_stage_complete(
+                    video_name,
+                    StateManager.STAGE_DETECTION,
+                    output_path=str(events_path),
+                    metadata={'total_events': len(events)}
+                )
+                return events
+            except Exception as e:
+                last_error = e
+                self.logger.warning(f"Falha na detection tentativa {attempt}/{max_attempts}: {e}")
+                if attempt < max_attempts:
+                    time.sleep(backoff)
+                else:
+                    self.logger.error(f"Detection falhou apos {max_attempts} tentativas", exc_info=True)
+                    self.state_manager.mark_stage_failed(
+                        video_name,
+                        StateManager.STAGE_DETECTION,
+                        str(e)
+                    )
+                    return None
     
     def _run_labeling(self, events: list, output_dir: Path, video_name: str) -> Optional[list]:
         """Executa estagio de labeling"""
         self.logger.info("\n--- ESTAGIO 5: AUTO LABELING ---")
         self.state_manager.mark_stage_start(video_name, StateManager.STAGE_LABELING)
         
-        try:
-            cfg = self.config['auto_labeler']['heuristics']
-            
-            labeler = AutoLabeler(
-                normal_max_duration=cfg['normal_duration_max'],
-                suspicious_min_duration=cfg['suspicious_duration_min'],
-                suspicious_min_frames=cfg['suspicious_frame_threshold']
-            )
-            
-            proposals, stats = labeler.generate_proposals_batch(
-                events,
-                output_dir=str(output_dir)
-            )
-            
-            # Construir caminho do metadata usando Path
-            proposals_path = output_dir / 'proposals_metadata.json'
-            
-            self.state_manager.mark_stage_complete(
-                video_name,
-                StateManager.STAGE_LABELING,
-                output_path=str(proposals_path),
-                metadata={
-                    'total_proposals': len(proposals),
-                    'needs_review': sum(1 for p in proposals if p['needs_review'])
-                }
-            )
-            return proposals
-        
-        except Exception as e:
-            self.logger.error(f"Erro no labeling: {e}", exc_info=True)
-            self.state_manager.mark_stage_failed(
-                video_name,
-                StateManager.STAGE_LABELING,
-                str(e)
-            )
-            return None
+        cfg = self.config['auto_labeler']['heuristics']
+        retry_cfg = self.config.get('retries', {}).get('labeling', {})
+        max_attempts = int(retry_cfg.get('max_attempts', 2))
+        backoff = int(retry_cfg.get('backoff_seconds', 5))
+
+        last_error: Optional[Exception] = None
+        for attempt in range(1, max_attempts + 1):
+            try:
+                labeler = AutoLabeler(
+                    normal_max_duration=cfg['normal_duration_max'],
+                    suspicious_min_duration=cfg['suspicious_duration_min'],
+                    suspicious_min_frames=cfg['suspicious_frame_threshold']
+                )
+                proposals, stats = labeler.generate_proposals_batch(
+                    events,
+                    output_dir=str(output_dir)
+                )
+                proposals_path = output_dir / 'proposals_metadata.json'
+                self.state_manager.mark_stage_complete(
+                    video_name,
+                    StateManager.STAGE_LABELING,
+                    output_path=str(proposals_path),
+                    metadata={
+                        'total_proposals': len(proposals),
+                        'needs_review': sum(1 for p in proposals if p['needs_review'])
+                    }
+                )
+                return proposals
+            except Exception as e:
+                last_error = e
+                self.logger.warning(f"Falha no labeling tentativa {attempt}/{max_attempts}: {e}")
+                if attempt < max_attempts:
+                    time.sleep(backoff)
+                else:
+                    self.logger.error(f"Labeling falhou apos {max_attempts} tentativas", exc_info=True)
+                    self.state_manager.mark_stage_failed(
+                        video_name,
+                        StateManager.STAGE_LABELING,
+                        str(e)
+                    )
+                    return None
     
     def _prompt_review_gui(self) -> bool:
         """
@@ -533,11 +549,114 @@ class AutomatedPipeline:
         self.logger.info("REVISAO HUMANA DISPONIVEL")
         self.logger.info("=" * 60)
         
+        # Se configurado para abrir automaticamente, nao perguntar
+        auto_open = self.config.get('review', {}).get('auto_open', False)
+        if auto_open:
+            return True
+        
+        # Em ambiente nao interativo, nao bloquear
+        if not hasattr(sys.stdin, 'isatty') or not sys.stdin.isatty():
+            return False
+        
         try:
             response = input("\nDeseja abrir a interface de revisao agora? (s/n): ").lower().strip()
             return response in ['s', 'sim', 'y', 'yes']
         except (EOFError, KeyboardInterrupt):
             return False
+
+    def _preflight_diagnostics(self) -> None:
+        """Coleta diagnosticos de ambiente e ajusta configuracoes em tempo de execucao
+        
+        Notas:
+        - Evitar importar torchvision aqui para nao acionar operadores nativos
+        - Se ffmpeg + NVENC estiverem disponiveis e chunking.use_gpu nao definido, habilitar automaticamente
+        """
+        self.env_info = {
+            'venv': os.environ.get('VIRTUAL_ENV'),
+            'python': sys.version.split()[0],
+            'torch': None,
+            'cuda_available': False,
+            'cuda_device_count': 0,
+            'ffmpeg_path': shutil.which('ffmpeg'),
+            'ffmpeg_nvenc': False,
+            'disk_free_gb': None,
+        }
+        
+        # Verificar torch sem importar torchvision
+        try:
+            import torch  # type: ignore
+            self.env_info['torch'] = getattr(torch, '__version__', 'unknown')
+            self.env_info['cuda_available'] = bool(getattr(torch, 'cuda', None) and torch.cuda.is_available())
+            self.env_info['cuda_device_count'] = int(torch.cuda.device_count()) if self.env_info['cuda_available'] else 0
+        except Exception as e:
+            self.logger.warning(f"torch indisponivel ou com erro: {e}")
+        
+        # Verificar ffmpeg e NVENC
+        if self.env_info['ffmpeg_path']:
+            try:
+                proc = subprocess.run(
+                    ['ffmpeg', '-hide_banner', '-encoders'],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    timeout=10
+                )
+                self.env_info['ffmpeg_nvenc'] = 'h264_nvenc' in proc.stdout
+            except Exception as e:
+                self.logger.debug(f"falha ao consultar encoders do ffmpeg: {e}")
+        else:
+            self.logger.warning('ffmpeg nao encontrado no PATH; chunking via GPU sera desabilitado')
+        
+        # Espaco livre no disco do data_dir
+        try:
+            usage = shutil.disk_usage(str(self.data_dir))
+            self.env_info['disk_free_gb'] = round(usage.free / (1024**3), 1)
+        except Exception:
+            pass
+        
+        # Validar existencia de modelos configurados (sem carregar)
+        base_dir = Path(__file__).parent
+        models_info = {}
+        try:
+            person_model = self.config.get('activity_filter', {}).get('person_detection_model')
+            if person_model:
+                p = Path(person_model)
+                resolved = p if p.is_absolute() else (base_dir / p)
+                exists = resolved.exists()
+                models_info['activity_filter_model'] = str(resolved)
+                if not exists:
+                    self.logger.warning(f"modelo de pessoa nao encontrado: {resolved}")
+        except Exception:
+            pass
+        try:
+            detector_model = self.config.get('event_detector', {}).get('detector_model')
+            if detector_model:
+                p = Path(detector_model)
+                resolved = p if p.is_absolute() else (base_dir / p)
+                exists = resolved.exists()
+                models_info['event_detector_model'] = str(resolved)
+                if not exists:
+                    self.logger.warning(f"modelo de detector nao encontrado: {resolved}")
+        except Exception:
+            pass
+        self.env_info['models'] = models_info
+        
+        # Autoconfigurar uso de GPU no chunking se nao definido explicitamente
+        chunking_cfg = self.config.setdefault('chunking', {})
+        if chunking_cfg.get('use_gpu', None) is None:
+            chunking_cfg['use_gpu'] = bool(self.env_info['ffmpeg_nvenc'])
+            self.logger.info(f"chunking.use_gpu nao definido no config; aplicando auto={chunking_cfg['use_gpu']}")
+        
+        # Log resumo
+        self.logger.info("\n--- PRE-FLIGHT ---")
+        self.logger.info(f"Python: {self.env_info['python']}  VENV: {self.env_info['venv'] or 'nenhum'}")
+        if self.env_info['torch']:
+            self.logger.info(
+                f"Torch: {self.env_info['torch']}  CUDA disponivel: {self.env_info['cuda_available']}  GPUs: {self.env_info['cuda_device_count']}"
+            )
+        self.logger.info(f"ffmpeg: {self.env_info['ffmpeg_path'] or 'nao encontrado'}  NVENC: {self.env_info['ffmpeg_nvenc']}")
+        if self.env_info['disk_free_gb'] is not None:
+            self.logger.info(f"Espaco livre em {self.data_dir}: {self.env_info['disk_free_gb']} GB")
     
     def _run_review_gui(self, proposals_dir: Path, chunks_dir: Path, video_name: str) -> bool:
         """
@@ -704,7 +823,7 @@ class AutomatedPipeline:
         self.logger.info(f"Iniciando do estagio: {next_stage}")
         
         # Criar diretorios de output
-        output_dirs = create_output_structure(str(self.data_dir))
+        output_dirs = create_output_structure(self.data_dir)
         
         # ESTAGIO 2: CHUNKING
         if next_stage == StateManager.STAGE_CHUNKING:
