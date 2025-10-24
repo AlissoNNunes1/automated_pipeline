@@ -132,6 +132,21 @@ class AutomatedPipeline:
                     self.logger.info(f"Video ja processado completamente: {video_name}")
                     continue
                 
+                # Tratar caso de video com falha anterior
+                if self.state_manager.is_video_failed(video_name):
+                    self.logger.warning(f"Video falhou anteriormente: {video_name}")
+                    # Em ambiente nao interativo, pular por padrao
+                    retry = 'n'
+                    if hasattr(sys.stdin, 'isatty') and sys.stdin.isatty():
+                        try:
+                            retry = input(f"Deseja reprocessar {video_name}? (s/n): ").lower().strip()
+                        except (EOFError, KeyboardInterrupt):
+                            retry = 'n'
+                    if retry == 's':
+                        self.state_manager.reset_video(video_name)
+                    else:
+                        continue
+                
                 # Processar a partir do chunking (conversao ja feita)
                 self._process_from_mp4(mp4_file, video_name)
             
@@ -822,9 +837,10 @@ class AutomatedPipeline:
             next_stage = StateManager.STAGE_CHUNKING
         
         self.logger.info(f"Iniciando do estagio: {next_stage}")
-        
-        # Criar diretorios de output
-        output_dirs = create_output_structure(self.data_dir)
+
+        # Criar diretorios de output por video (mesma estrutura do fluxo completo)
+        video_data_dir = self.data_dir / video_base
+        output_dirs = create_output_structure(video_data_dir)
         
         # ESTAGIO 2: CHUNKING
         if next_stage == StateManager.STAGE_CHUNKING:
