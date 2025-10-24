@@ -350,6 +350,56 @@ class StateManager:
             self.reset_video(video_name)
         self.logger.info(f"Resetados {len(failed_videos)} videos com falha")
 
+    def reset_stages_from(self, video_name: str, from_stage: str):
+        """Reseta estagios a partir de um estagio informado (inclusive)
+        
+        Comentario sem acento: usado para modo start-from, para garantir que o
+        estagio escolhido e os posteriores sejam marcados como not_started e
+        possam ter seus status atualizados durante a nova execucao.
+        """
+        if video_name not in self.state:
+            self.initialize_video(video_name)
+
+        # Encontrar indice do estagio
+        try:
+            start_idx = self.ALL_STAGES.index(from_stage)
+        except ValueError:
+            self.logger.warning(f"Estagio invalido em reset_stages_from: {from_stage}")
+            return
+
+        # Resetar estagios do indice em diante
+        for stage in self.ALL_STAGES[start_idx:]:
+            self.state[video_name]['stages'][stage] = {
+                'status': self.STATUS_NOT_STARTED
+            }
+
+        # Ajustar status de nivel superior para permitir novo processamento
+        self.state[video_name]['status'] = self.STATUS_NOT_STARTED
+        self.state[video_name]['error'] = None
+        self.state[video_name]['completed_at'] = None
+        self._save_state()
+        self.logger.info(f"[{video_name}] Estagios resetados a partir de: {from_stage}")
+
+    def reset_stage_only(self, video_name: str, stage: str):
+        """Reseta somente um estagio, preservando os demais
+        
+        Comentario sem acento: usado para modo run-stage, para que o estagio
+        seja executado novamente sem afetar os outros.
+        """
+        if video_name not in self.state:
+            self.initialize_video(video_name)
+
+        if stage not in self.ALL_STAGES:
+            self.logger.warning(f"Estagio invalido em reset_stage_only: {stage}")
+            return
+
+        self.state[video_name]['stages'][stage] = {
+            'status': self.STATUS_NOT_STARTED
+        }
+        # Nao altera status de nivel superior aqui
+        self._save_state()
+        self.logger.info(f"[{video_name}] Estagio resetado: {stage}")
+
     def print_summary(self):
         """Imprime resumo do estado atual"""
         stats = self.get_statistics()

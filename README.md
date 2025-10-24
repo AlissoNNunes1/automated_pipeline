@@ -138,7 +138,7 @@ with open('data/proposals/proposals.json', 'w') as f:
 
 Editar `config.yaml` para ajustar parametros:
 
-```yaml
+````yaml
 # Duracao dos chunks
 chunking:
   chunk_duration_seconds: 180 # 3 minutos
@@ -154,7 +154,7 @@ Comandos abaixo estao no formato PowerShell (pwsh) para Windows.
 
 ```powershell
 python .\pipeline_new.py
-```
+````
 
 ### Iniciar a partir de um estagio (start-from)
 
@@ -199,9 +199,11 @@ Observacoes:
   min_person_frames: 30 # Minimo de frames com pessoa
 
 # Modelos YOLO
+
 event_detector:
-  detector_model: 'yolo11m.pt' # ou yolo11l.pt para melhor precisao
-```
+detector_model: 'yolo11m.pt' # ou yolo11l.pt para melhor precisao
+
+````
 
 ## Integracao com CVAT
 
@@ -223,7 +225,7 @@ task_id = cvat.create_task_with_proposals(
 )
 
 print(f"Task criada: http://localhost:8080/tasks/{task_id}")
-```
+````
 
 ## Metricas e Relatorios
 
@@ -265,10 +267,10 @@ O sistema gera automaticamente:
 **Versao**: 1.0.0  
 **Licenca**: MIT
 
-# ** \_\_** \__\_\_ _ \_
+# **\_\_** \_\_\_\_\_ \_
 
 # / \_\/ **_) _**) )( \
 
-# / \_** \_** ) \/ (
+# / \_**\_** ) \/ (
 
 # \_/\_(\_**\_(\_\_**|\_\_\_\_/

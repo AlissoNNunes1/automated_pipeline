@@ -377,6 +377,8 @@ class AutomatedPipeline:
                     self.logger.warning("Arquivo .dav nao encontrado; pulando")
                     continue
                 try:
+                    # Resetar do estagio escolhido em diante
+                    self.state_manager.reset_stages_from(video_name, StateManager.STAGE_CONVERSION)
                     self._process_single_video(dav)
                 except Exception as e:
                     self.logger.error(f"Erro ao processar {video_name} do estagio conversion: {e}", exc_info=True)
@@ -399,6 +401,12 @@ class AutomatedPipeline:
                 self._fast_forward_state(video_name, mp4, stage_key)
             except Exception as e:
                 self.logger.warning(f"Falha no fast-forward de estado: {e}")
+
+            # Resetar estagio alvo e posteriores para garantir atualizacao de status
+            try:
+                self.state_manager.reset_stages_from(video_name, stage_key)
+            except Exception as e:
+                self.logger.warning(f"Falha ao resetar estagios a partir de {stage_key}: {e}")
 
             # Continuar processamento a partir do MP4
             try:
@@ -436,12 +444,15 @@ class AutomatedPipeline:
                     if not dav:
                         self.logger.warning("Arquivo .dav nao encontrado; pulando")
                         continue
+                    # Resetar somente este estagio para refletir execucao isolada
+                    self.state_manager.reset_stage_only(video_name, StateManager.STAGE_CONVERSION)
                     self._run_conversion(dav, video_name)
                 elif stage_key == 'chunking':
                     mp4 = mp4_map.get(video_name)
                     if not mp4:
                         self.logger.error("MP4 convertido nao encontrado; pulando")
                         continue
+                    self.state_manager.reset_stage_only(video_name, StateManager.STAGE_CHUNKING)
                     self._run_chunking(mp4, output_dirs['chunks'], video_name)
                 elif stage_key == 'filtering':
                     chunks_index = output_dirs['chunks'] / 'chunks_index.json'
@@ -451,6 +462,7 @@ class AutomatedPipeline:
                     chunker = VideoChunker(use_gpu=self.config.get('chunking', {}).get('use_gpu', False))
                     chunks_data = chunker.load_chunks_index(str(chunks_index))
                     chunks = chunks_data['chunks']
+                    self.state_manager.reset_stage_only(video_name, StateManager.STAGE_FILTERING)
                     self._run_filtering(chunks, output_dirs['active_chunks'], video_name)
                 elif stage_key == 'detection':
                     report = output_dirs['active_chunks'] / 'active_chunks_report.json'
@@ -460,6 +472,7 @@ class AutomatedPipeline:
                     with open(report, 'r', encoding='utf-8') as f:
                         active_report = json.load(f)
                     active_chunks = active_report['active_chunks']
+                    self.state_manager.reset_stage_only(video_name, StateManager.STAGE_DETECTION)
                     self._run_detection(active_chunks, output_dirs['events'], video_name)
                 elif stage_key == 'labeling':
                     events_summary = output_dirs['events'] / 'events_summary.json'
@@ -469,12 +482,14 @@ class AutomatedPipeline:
                     with open(events_summary, 'r', encoding='utf-8') as f:
                         events_data = json.load(f)
                     events = events_data['events']
+                    self.state_manager.reset_stage_only(video_name, StateManager.STAGE_LABELING)
                     self._run_labeling(events, output_dirs['proposals'], video_name)
                 elif stage_key == 'review':
                     proposals_path = output_dirs['proposals'] / 'proposals_metadata.json'
                     if not proposals_path.exists():
                         self.logger.error("proposals_metadata.json nao encontrado; execute labeling antes")
                         continue
+                    self.state_manager.reset_stage_only(video_name, StateManager.STAGE_REVIEW)
                     self._run_review_gui(output_dirs['proposals'], output_dirs['chunks'].parent / 'active_chunks', video_name)
                 else:
                     self.logger.error(f"Estagio desconhecido: {stage_key}")
