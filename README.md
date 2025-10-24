@@ -145,6 +145,56 @@ chunking:
 
 # Sensibilidade da filtragem
 activity_filter:
+
+## Guia de Comandos (CLI do pipeline_new.py)
+
+Comandos abaixo estao no formato PowerShell (pwsh) para Windows.
+
+### Execucao padrao (modo atual)
+
+```powershell
+python .\pipeline_new.py
+```
+
+### Iniciar a partir de um estagio (start-from)
+
+Executa o pipeline a partir do estagio escolhido e segue ate o final. Se os artefatos anteriores existirem, o estado sera acelerado (sem reprocessar).
+
+Estagios validos: `conversion`, `chunking`, `filtering`, `detection`, `labeling`, `review`.
+
+```powershell
+python .\pipeline_new.py --mode start-from --stage chunking
+python .\pipeline_new.py --mode start-from --stage detection
+```
+
+### Executar apenas um estagio especifico (run-stage)
+
+Roda somente o estagio informado para todos os videos. Requer que os artefatos de entrada desse estagio ja existam.
+
+```powershell
+python .\pipeline_new.py --mode run-stage --stage chunking
+python .\pipeline_new.py --mode run-stage --stage filtering
+python .\pipeline_new.py --mode run-stage --stage detection
+python .\pipeline_new.py --mode run-stage --stage labeling
+python .\pipeline_new.py --mode run-stage --stage review
+```
+
+### Recomeçar tudo (restart-all)
+
+Apaga `data_processing/` e `pipeline_state.json`. Opcionalmente, pode apagar tambem `videos_converted/`.
+
+```powershell
+# Reiniciar (confirma automaticamente com --yes)
+python .\pipeline_new.py --mode restart-all --yes
+
+# Reiniciar incluindo MP4 convertidos
+python .\pipeline_new.py --mode restart-all --yes --include-mp4
+```
+
+Observacoes:
+
+- Use `--yes` para nao receber prompts de confirmacao em reinicio.
+- Em `start-from detection` e similares, se pre-requisitos nao existirem, etapas anteriores podem ser executadas automaticamente para supri-los.
   motion_threshold: 0.02 # 2% de movimento
   min_person_frames: 30 # Minimo de frames com pessoa
 

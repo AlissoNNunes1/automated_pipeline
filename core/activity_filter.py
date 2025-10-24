@@ -49,7 +49,10 @@ class ActivityFilter:
         min_bbox_area: int = 2000,
         max_bbox_area: int = 500000,
         min_aspect_ratio: float = 0.3,
-        max_aspect_ratio: float = 4.0
+        max_aspect_ratio: float = 4.0,
+        min_local_motion_ratio: float = 0.01,
+        ignore_zones: Optional[List[List[float]]] = None,
+        ignore_overlap_threshold: float = 0.5
     ):
         """
         Inicializa ActivityFilter
@@ -75,6 +78,9 @@ class ActivityFilter:
         self.max_bbox_area = max_bbox_area
         self.min_aspect_ratio = min_aspect_ratio
         self.max_aspect_ratio = max_aspect_ratio
+        self.min_local_motion_ratio = min_local_motion_ratio
+        self.ignore_zones = ignore_zones or []  # lista de bboxes normalizadas [x1,y1,x2,y2]
+        self.ignore_overlap_threshold = ignore_overlap_threshold
         
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
@@ -293,6 +299,10 @@ class ActivityFilter:
         person_frames = 0
         total_sampled = 0
         
+        prev_gray = None
+        frame_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or 0
+        frame_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 0
+        
         while True:
             # Pular frames para acelerar (sample rate)
             for _ in range(self.person_sample_rate - 1):
@@ -303,6 +313,13 @@ class ActivityFilter:
                 break
             
             total_sampled += 1
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            # Preparar mascara de movimento local com base na diferenca com frame anterior
+            motion_mask = None
+            if prev_gray is not None:
+                diff = cv2.absdiff(prev_gray, gray)
+                _, motion_mask = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)
+            prev_gray = gray
             
             # Detectar pessoas (classe 0 no COCO dataset)
             results = self.detector.predict(
@@ -329,9 +346,19 @@ class ActivityFilter:
                         area = width * height
                         aspect_ratio = height / width if width > 0 else 0
                         
+                        # Ignorar se bbox sobrepoe zonas de ignore
+                        if self._bbox_overlaps_ignore((x1, y1, x2, y2), frame_w, frame_h):
+                            continue
+                        
                         # Filtros de qualidade
                         if (self.min_bbox_area <= area <= self.max_bbox_area and
                             self.min_aspect_ratio <= aspect_ratio <= self.max_aspect_ratio):
+                            # Corroborar com movimento local (evita imagens estaticas/posters)
+                            if motion_mask is not None:
+                                local_motion = self._local_motion_ratio(motion_mask, (x1, y1, x2, y2))
+                                if local_motion < self.min_local_motion_ratio:
+                                    # Muito pouco movimento dentro da bbox, possivel objeto estatico
+                                    continue
                             valid_detection = True
                             break
                     
@@ -346,6 +373,54 @@ class ActivityFilter:
         )
         
         return person_frames, total_sampled
+
+    def _local_motion_ratio(self, motion_mask: np.ndarray, bbox: Tuple[float, float, float, float]) -> float:
+        """
+        Calcula razao de pixels com movimento dentro do retangulo bbox
+        Args:
+            motion_mask: mascara binaria de movimento (0/255)
+            bbox: (x1,y1,x2,y2) em coordenadas de pixel
+        Returns:
+            Razao de pixels com movimento no retangulo [0,1]
+        """
+        x1, y1, x2, y2 = bbox
+        h, w = motion_mask.shape[:2]
+        xi1 = max(0, int(x1))
+        yi1 = max(0, int(y1))
+        xi2 = min(w, int(x2))
+        yi2 = min(h, int(y2))
+        if xi2 <= xi1 or yi2 <= yi1:
+            return 0.0
+        roi = motion_mask[yi1:yi2, xi1:xi2]
+        motion_pixels = int((roi > 0).sum())
+        total_pixels = roi.size if roi.size > 0 else 1
+        return motion_pixels / float(total_pixels)
+
+    def _bbox_overlaps_ignore(self, bbox: Tuple[float, float, float, float], frame_w: int, frame_h: int) -> bool:
+        """
+        Verifica se bbox sobrepoe significativamente alguma zona de ignore
+        Zonas sao fornecidas normalizadas [0..1]
+        """
+        if not self.ignore_zones or frame_w <= 0 or frame_h <= 0:
+            return False
+        x1, y1, x2, y2 = bbox
+        box_area = max(1.0, (x2 - x1) * (y2 - y1))
+        for nz in self.ignore_zones:
+            zx1, zy1, zx2, zy2 = nz
+            ax1 = zx1 * frame_w
+            ay1 = zy1 * frame_h
+            ax2 = zx2 * frame_w
+            ay2 = zy2 * frame_h
+            ix1 = max(x1, ax1)
+            iy1 = max(y1, ay1)
+            ix2 = min(x2, ax2)
+            iy2 = min(y2, ay2)
+            iw = max(0.0, ix2 - ix1)
+            ih = max(0.0, iy2 - iy1)
+            inter = iw * ih
+            if inter / box_area >= self.ignore_overlap_threshold:
+                return True
+        return False
     
     def _save_report(
         self,

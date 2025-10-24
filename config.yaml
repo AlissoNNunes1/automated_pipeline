@@ -38,6 +38,11 @@ activity_filter:
   max_bbox_area: 500000 # Maximo 500k pixels (evita deteccoes de fundo)
   min_aspect_ratio: 0.3 # Minimo altura/largura (evita bboxes muito horizontais)
   max_aspect_ratio: 4.0 # Maximo altura/largura (evita bboxes muito verticais)
+  # Corroboracao de movimento local para reduzir falsos positivos (posters/sombras)
+  min_local_motion_ratio: 0.01 # Minimo de 1% de pixels com movimento dentro da bbox
+  # Zonas para ignorar deteccoes (coordenadas normalizadas [x1,y1,x2,y2])
+  ignore_zones: []
+  ignore_overlap_threshold: 0.5 # Se overlap com zona >= 50%, ignorar
 
 # Configuracoes de deteccao de eventos
 event_detector:
@@ -54,6 +59,12 @@ event_detector:
   max_aspect_ratio: 4.0 # Maximo altura/largura
   # Filtros de tracking
   min_track_length: 15 # Minimo 15 deteccoes por track (0.5s @ 30fps)
+  min_track_confidence_avg: 0.55 # Confianca media minima por track
+  require_motion_for_event: true # Exigir movimento minimo no track
+  min_track_movement_pixels: 12.0 # Distancia minima do centro entre inicio e fim do track
+  # Zonas para ignorar deteccoes (coordenadas normalizadas [x1,y1,x2,y2])
+  ignore_zones: []
+  ignore_overlap_threshold: 0.5
 
 # Configuracoes de rotulagem automatica
 auto_labeler:

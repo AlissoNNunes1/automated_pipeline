@@ -53,7 +53,12 @@ class EventDetector:
         max_bbox_area: int = 500000,
         min_aspect_ratio: float = 0.3,
         max_aspect_ratio: float = 4.0,
-        min_track_length: int = 15
+        min_track_length: int = 15,
+        min_track_confidence_avg: float = 0.55,
+        require_motion_for_event: bool = True,
+        min_track_movement_pixels: float = 12.0,
+        ignore_zones: Optional[List[List[float]]] = None,
+        ignore_overlap_threshold: float = 0.5
     ):
         """
         Inicializa EventDetector
@@ -82,6 +87,11 @@ class EventDetector:
         self.min_aspect_ratio = min_aspect_ratio
         self.max_aspect_ratio = max_aspect_ratio
         self.min_track_length = min_track_length
+        self.min_track_confidence_avg = min_track_confidence_avg
+        self.require_motion_for_event = require_motion_for_event
+        self.min_track_movement_pixels = min_track_movement_pixels
+        self.ignore_zones = ignore_zones or []
+        self.ignore_overlap_threshold = ignore_overlap_threshold
         
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
@@ -288,6 +298,8 @@ class EventDetector:
         tracks = defaultdict(list)
         frame_count = 0
         frames_processed = 0
+        frame_w = None
+        frame_h = None
         
         print(f"  -> Processando frames do chunk (sample_rate={self.sample_rate})...", flush=True)
         
@@ -304,11 +316,46 @@ class EventDetector:
             if frames_processed % 100 == 0:
                 print(f"     Frame {frames_processed} processado (total: {frame_count})...", flush=True)
             
+            # Capturar tamanho do frame para normalizacao de zonas
+            if frame_w is None and hasattr(result, 'orig_shape') and result.orig_shape is not None:
+                try:
+                    frame_h, frame_w = int(result.orig_shape[0]), int(result.orig_shape[1])
+                except Exception:
+                    frame_w, frame_h = None, None
+
             if result.boxes is not None and result.boxes.id is not None:
                 boxes = result.boxes
-                track_ids = boxes.id.int().cpu().tolist()
-                confidences = boxes.conf.cpu().tolist()
-                xyxy = boxes.xyxy.cpu().tolist()
+                # Normalizar saidas para listas python de forma robusta
+                ids_attr = getattr(boxes, 'id', None)
+                conf_attr = getattr(boxes, 'conf', None)
+                xyxy_attr = getattr(boxes, 'xyxy', None)
+
+                def _to_list(arr, cast=float):
+                    try:
+                        import numpy as _np  # type: ignore
+                    except Exception:
+                        _np = None
+                    try:
+                        a = arr
+                        if hasattr(a, 'cpu'):
+                            a = a.cpu()
+                        if hasattr(a, 'numpy'):
+                            a = a.numpy()
+                        elif _np is not None and isinstance(a, _np.ndarray):
+                            pass
+                        else:
+                            return list(a) if isinstance(a, (list, tuple)) else []
+                        lst = a.tolist()
+                        # Achatar listas aninhadas simples
+                        if lst and isinstance(lst[0], list) and len(lst[0]) == 1:
+                            lst = [x[0] for x in lst]
+                        return [cast(x) for x in lst]
+                    except Exception:
+                        return []
+
+                track_ids = _to_list(ids_attr, cast=int)
+                confidences = _to_list(conf_attr, cast=float)
+                xyxy = _to_list(xyxy_attr, cast=float)
                 
                 for track_id, conf, bbox in zip(track_ids, confidences, xyxy):
                     x1, y1, x2, y2 = bbox
@@ -326,6 +373,10 @@ class EventDetector:
                     if not (self.min_aspect_ratio <= aspect_ratio <= self.max_aspect_ratio):
                         continue  # Aspect ratio invalido
                     
+                    # Ignorar se bbox sobrepoe zonas de ignore
+                    if self._bbox_overlaps_ignore((x1, y1, x2, y2), frame_w, frame_h):
+                        continue
+
                     # Bbox valida, adicionar ao track
                     tracks[track_id].append({
                         'frame': frame_idx,
@@ -354,6 +405,8 @@ class EventDetector:
             
             # Calcular estatisticas
             avg_conf = sum(d['confidence'] for d in detections) / len(detections)
+            if avg_conf < self.min_track_confidence_avg:
+                continue
             
             # Calcular movimento (distancia entre primeira e ultima bbox)
             bbox_start = detections[0]['bbox']
@@ -372,6 +425,9 @@ class EventDetector:
                 (center_end[0] - center_start[0])**2 +
                 (center_end[1] - center_start[1])**2
             )**0.5
+            if self.require_motion_for_event and movement_distance < self.min_track_movement_pixels:
+                # Poco movimento entre inicio e fim do track (possivel objeto estatico)
+                continue
             
             # Criar evento
             event = {
@@ -392,6 +448,31 @@ class EventDetector:
             events.append(event)
         
         return events
+
+    def _bbox_overlaps_ignore(self, bbox: Tuple[float, float, float, float], frame_w: Optional[int], frame_h: Optional[int]) -> bool:
+        """
+        Verifica se bbox sobrepoe significativamente alguma zona de ignore (normalizada)
+        """
+        if not self.ignore_zones or not frame_w or not frame_h:
+            return False
+        x1, y1, x2, y2 = bbox
+        box_area = max(1.0, (x2 - x1) * (y2 - y1))
+        for nz in self.ignore_zones:
+            zx1, zy1, zx2, zy2 = nz
+            ax1 = zx1 * frame_w
+            ay1 = zy1 * frame_h
+            ax2 = zx2 * frame_w
+            ay2 = zy2 * frame_h
+            ix1 = max(x1, ax1)
+            iy1 = max(y1, ay1)
+            ix2 = min(x2, ax2)
+            iy2 = min(y2, ay2)
+            iw = max(0.0, ix2 - ix1)
+            ih = max(0.0, iy2 - iy1)
+            inter = iw * ih
+            if inter / box_area >= self.ignore_overlap_threshold:
+                return True
+        return False
     
     def _save_events(
         self,

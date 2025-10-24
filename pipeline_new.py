@@ -26,6 +26,7 @@ import logging
 import shutil
 import subprocess
 import time
+import argparse
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -338,6 +339,257 @@ class AutomatedPipeline:
             )
         
         self.logger.info(f"\nVIDEO PROCESSADO COM SUCESSO: {video_name}")
+
+    # ---------------------------------------------------------------------
+    # Modos de execucao customizados
+    # ---------------------------------------------------------------------
+    def run_from_stage(self, stage_key: str) -> None:
+        """Executa pipeline iniciando do estagio informado para todos os videos
+        
+        Observacao (comentario sem acento): se artefatos de estagios anteriores
+        existirem (ex: chunks_index.json), o estado sera acelerado (fast-forward)
+        para evitar reprocessamento. Se nao existirem, estagios anteriores podem
+        ser executados automaticamente para suprir dependencias.
+        """
+        self.logger.info("=" * 80)
+        self.logger.info(f"MODO START-FROM: iniciando do estagio {stage_key}")
+        self.logger.info("=" * 80)
+
+        # Catalogo de videos: .dav e .mp4 existentes
+        dav_files = find_files(self.videos_full_dir, ['.dav', '.DAV'], recursive=True)
+        mp4_files = find_files(self.videos_converted_dir, ['.mp4', '.MP4'], recursive=True)
+
+        # Mapear mp4 -> nome .dav original
+        mp4_map = {self._get_original_dav_name(Path(p).name): Path(p) for p in mp4_files}
+        dav_map = {Path(p).name: Path(p) for p in dav_files}
+
+        # Conjunto total de nomes .dav
+        all_video_names = set(dav_map.keys()) | set(mp4_map.keys())
+
+        for idx, video_name in enumerate(sorted(all_video_names), 1):
+            self.logger.info("\n" + "-" * 60)
+            self.logger.info(f"[{idx}/{len(all_video_names)}] Video: {video_name}")
+
+            # Conversion: usar fluxo completo
+            if stage_key == 'conversion':
+                dav = dav_map.get(video_name)
+                if not dav:
+                    self.logger.warning("Arquivo .dav nao encontrado; pulando")
+                    continue
+                try:
+                    self._process_single_video(dav)
+                except Exception as e:
+                    self.logger.error(f"Erro ao processar {video_name} do estagio conversion: {e}", exc_info=True)
+                continue
+
+            # Para estagios a partir de chunking, requer MP4
+            mp4 = mp4_map.get(video_name)
+            if not mp4:
+                self.logger.error("MP4 convertido nao encontrado para start-from; pulando")
+                # Registrar falha de conversao ausente
+                self.state_manager.mark_stage_failed(
+                    video_name,
+                    StateManager.STAGE_CONVERSION,
+                    "MP4 convertido ausente para start-from"
+                )
+                continue
+
+            # Tentar acelerar estado ate o estagio desejado
+            try:
+                self._fast_forward_state(video_name, mp4, stage_key)
+            except Exception as e:
+                self.logger.warning(f"Falha no fast-forward de estado: {e}")
+
+            # Continuar processamento a partir do MP4
+            try:
+                self._process_from_mp4(mp4, video_name)
+            except Exception as e:
+                self.logger.error(f"Erro ao processar {video_name} a partir de {stage_key}: {e}", exc_info=True)
+
+    def run_only_stage(self, stage_key: str) -> None:
+        """Executa apenas um estagio especifico para todos os videos
+        
+        Observacao (comentario sem acento): pre-requisitos devem existir.
+        Este modo nao prossegue para estagios seguintes.
+        """
+        self.logger.info("=" * 80)
+        self.logger.info(f"MODO RUN-STAGE: executando somente {stage_key}")
+        self.logger.info("=" * 80)
+
+        dav_files = find_files(self.videos_full_dir, ['.dav', '.DAV'], recursive=True)
+        mp4_files = find_files(self.videos_converted_dir, ['.mp4', '.MP4'], recursive=True)
+
+        mp4_map = {self._get_original_dav_name(Path(p).name): Path(p) for p in mp4_files}
+        dav_map = {Path(p).name: Path(p) for p in dav_files}
+        all_video_names = set(dav_map.keys()) | set(mp4_map.keys())
+
+        for idx, video_name in enumerate(sorted(all_video_names), 1):
+            self.logger.info("\n" + "-" * 60)
+            self.logger.info(f"[{idx}/{len(all_video_names)}] Video: {video_name}")
+            video_base = get_video_base_name(video_name)
+            video_data_dir = self.data_dir / video_base
+            output_dirs = create_output_structure(video_data_dir)
+
+            try:
+                if stage_key == 'conversion':
+                    dav = dav_map.get(video_name)
+                    if not dav:
+                        self.logger.warning("Arquivo .dav nao encontrado; pulando")
+                        continue
+                    self._run_conversion(dav, video_name)
+                elif stage_key == 'chunking':
+                    mp4 = mp4_map.get(video_name)
+                    if not mp4:
+                        self.logger.error("MP4 convertido nao encontrado; pulando")
+                        continue
+                    self._run_chunking(mp4, output_dirs['chunks'], video_name)
+                elif stage_key == 'filtering':
+                    chunks_index = output_dirs['chunks'] / 'chunks_index.json'
+                    if not chunks_index.exists():
+                        self.logger.error("chunks_index.json nao encontrado; execute chunking antes")
+                        continue
+                    chunker = VideoChunker(use_gpu=self.config.get('chunking', {}).get('use_gpu', False))
+                    chunks_data = chunker.load_chunks_index(str(chunks_index))
+                    chunks = chunks_data['chunks']
+                    self._run_filtering(chunks, output_dirs['active_chunks'], video_name)
+                elif stage_key == 'detection':
+                    report = output_dirs['active_chunks'] / 'active_chunks_report.json'
+                    if not report.exists():
+                        self.logger.error("active_chunks_report.json nao encontrado; execute filtering antes")
+                        continue
+                    with open(report, 'r', encoding='utf-8') as f:
+                        active_report = json.load(f)
+                    active_chunks = active_report['active_chunks']
+                    self._run_detection(active_chunks, output_dirs['events'], video_name)
+                elif stage_key == 'labeling':
+                    events_summary = output_dirs['events'] / 'events_summary.json'
+                    if not events_summary.exists():
+                        self.logger.error("events_summary.json nao encontrado; execute detection antes")
+                        continue
+                    with open(events_summary, 'r', encoding='utf-8') as f:
+                        events_data = json.load(f)
+                    events = events_data['events']
+                    self._run_labeling(events, output_dirs['proposals'], video_name)
+                elif stage_key == 'review':
+                    proposals_path = output_dirs['proposals'] / 'proposals_metadata.json'
+                    if not proposals_path.exists():
+                        self.logger.error("proposals_metadata.json nao encontrado; execute labeling antes")
+                        continue
+                    self._run_review_gui(output_dirs['proposals'], output_dirs['chunks'].parent / 'active_chunks', video_name)
+                else:
+                    self.logger.error(f"Estagio desconhecido: {stage_key}")
+            except Exception as e:
+                self.logger.error(f"Erro ao executar estagio {stage_key} para {video_name}: {e}", exc_info=True)
+
+    def reset_all(self, include_mp4: bool = False, assume_yes: bool = False) -> None:
+        """Apaga estado e dados para recomeco total
+        
+        Parametros (comentario sem acento):
+        - include_mp4: se True, apaga tambem videos convertidos
+        - assume_yes: se True, nao pergunta confirmacao
+        """
+        # Confirmacao interativa se necessario
+        if not assume_yes:
+            if hasattr(sys.stdin, 'isatty') and sys.stdin.isatty():
+                try:
+                    msg = "Isto ira apagar data_processing e o arquivo pipeline_state.json"
+                    if include_mp4:
+                        msg += " e tambem videos_converted"
+                    resp = input(f"{msg}. Continuar? (s/n): ").lower().strip()
+                    if resp not in ['s', 'sim', 'y', 'yes']:
+                        self.logger.info("Reinicio cancelado pelo usuario")
+                        return
+                except (EOFError, KeyboardInterrupt):
+                    self.logger.info("Reinicio cancelado")
+                    return
+
+        # Remover diretorios e estado
+        try:
+            if self.data_dir.exists():
+                shutil.rmtree(self.data_dir, ignore_errors=True)
+                self.logger.info(f"Removido: {self.data_dir}")
+        except Exception as e:
+            self.logger.warning(f"Falha ao remover {self.data_dir}: {e}")
+
+        try:
+            state_file = Path(self.state_manager.state_file)
+            if state_file.exists():
+                state_file.unlink()
+                self.logger.info(f"Removido: {state_file}")
+        except Exception as e:
+            self.logger.warning(f"Falha ao remover pipeline_state.json: {e}")
+
+        if include_mp4:
+            try:
+                if self.videos_converted_dir.exists():
+                    shutil.rmtree(self.videos_converted_dir, ignore_errors=True)
+                    self.logger.info(f"Removido: {self.videos_converted_dir}")
+            except Exception as e:
+                self.logger.warning(f"Falha ao remover {self.videos_converted_dir}: {e}")
+
+        # Recriar estrutura basica
+        ensure_dir(self.data_dir)
+        ensure_dir(self.videos_converted_dir)
+        self.logger.info("Reinicio concluido. Voce pode executar o pipeline novamente.")
+
+    def _fast_forward_state(self, video_name: str, mp4_path: Path, min_stage_key: str) -> None:
+        """Ajusta estado para refletir artefatos ja existentes
+        
+        Comentario sem acento: marca estagios como completos se seus
+        artefatos forem encontrados, ate o estagio desejado.
+        """
+        video_base = get_video_base_name(video_name)
+        video_data_dir = self.data_dir / video_base
+        output_dirs = create_output_structure(video_data_dir)
+
+        # Sempre garantir conversao marcada se vamos de chunking para frente
+        if min_stage_key in ['chunking', 'filtering', 'detection', 'labeling', 'review']:
+            self.state_manager.mark_stage_complete(
+                video_name,
+                StateManager.STAGE_CONVERSION,
+                output_path=str(mp4_path),
+                metadata={"fast_forward": True}
+            )
+
+        # Chunking
+        chunks_index = output_dirs['chunks'] / 'chunks_index.json'
+        if min_stage_key in ['filtering', 'detection', 'labeling', 'review'] and chunks_index.exists():
+            self.state_manager.mark_stage_complete(
+                video_name,
+                StateManager.STAGE_CHUNKING,
+                output_path=str(chunks_index),
+                metadata={"fast_forward": True}
+            )
+
+        # Filtering
+        active_report = output_dirs['active_chunks'] / 'active_chunks_report.json'
+        if min_stage_key in ['detection', 'labeling', 'review'] and active_report.exists():
+            self.state_manager.mark_stage_complete(
+                video_name,
+                StateManager.STAGE_FILTERING,
+                output_path=str(active_report),
+                metadata={"fast_forward": True}
+            )
+
+        # Detection
+        events_summary = output_dirs['events'] / 'events_summary.json'
+        if min_stage_key in ['labeling', 'review'] and events_summary.exists():
+            self.state_manager.mark_stage_complete(
+                video_name,
+                StateManager.STAGE_DETECTION,
+                output_path=str(events_summary),
+                metadata={"fast_forward": True}
+            )
+
+        # Labeling
+        proposals_meta = output_dirs['proposals'] / 'proposals_metadata.json'
+        if min_stage_key in ['review'] and proposals_meta.exists():
+            self.state_manager.mark_stage_complete(
+                video_name,
+                StateManager.STAGE_LABELING,
+                output_path=str(proposals_meta),
+                metadata={"fast_forward": True}
+            )
     
     def _run_conversion(self, dav_file: Path, video_name: str) -> Optional[Path]:
         """Executa estagio de conversao"""
@@ -421,8 +673,16 @@ class AutomatedPipeline:
                 motion_threshold=cfg['motion_threshold'],
                 min_person_frames=cfg['min_person_frames'],
                 person_detection_model=cfg['person_detection_model'],
+                person_conf_threshold=cfg.get('person_conf_threshold', 0.5),
                 motion_sample_rate=cfg['sample_rate_motion'],
-                person_sample_rate=cfg['sample_rate_person']
+                person_sample_rate=cfg['sample_rate_person'],
+                min_bbox_area=cfg.get('min_bbox_area', 2000),
+                max_bbox_area=cfg.get('max_bbox_area', 500000),
+                min_aspect_ratio=cfg.get('min_aspect_ratio', 0.3),
+                max_aspect_ratio=cfg.get('max_aspect_ratio', 4.0),
+                min_local_motion_ratio=cfg.get('min_local_motion_ratio', 0.01),
+                ignore_zones=cfg.get('ignore_zones', []),
+                ignore_overlap_threshold=cfg.get('ignore_overlap_threshold', 0.5)
             )
             
             active_chunks, stats = activity_filter.filter_inactive_chunks(
@@ -475,8 +735,19 @@ class AutomatedPipeline:
                     detector_model=cfg['detector_model'],
                     tracker_config=cfg['tracker'],
                     confidence_threshold=cfg['conf_threshold'],
+                    iou_threshold=cfg.get('iou_threshold', 0.5),
                     min_duration_seconds=cfg['min_event_duration_seconds'],
-                    sample_rate=cfg.get('sample_rate', 1)
+                    sample_rate=cfg.get('sample_rate', 1),
+                    min_bbox_area=cfg.get('min_bbox_area', 2000),
+                    max_bbox_area=cfg.get('max_bbox_area', 500000),
+                    min_aspect_ratio=cfg.get('min_aspect_ratio', 0.3),
+                    max_aspect_ratio=cfg.get('max_aspect_ratio', 4.0),
+                    min_track_length=cfg.get('min_track_length', 15),
+                    min_track_confidence_avg=cfg.get('min_track_confidence_avg', 0.55),
+                    require_motion_for_event=cfg.get('require_motion_for_event', True),
+                    min_track_movement_pixels=cfg.get('min_track_movement_pixels', 12.0),
+                    ignore_zones=cfg.get('ignore_zones', []),
+                    ignore_overlap_threshold=cfg.get('ignore_overlap_threshold', 0.5)
                 )
                 self.logger.info("EventDetector carregado com sucesso!")
 
@@ -894,6 +1165,14 @@ class AutomatedPipeline:
 
 def main():
     """Funcao principal"""
+    # CLI simples para modos de execucao
+    parser = argparse.ArgumentParser(description='Automated Pipeline CLI')
+    parser.add_argument('--mode', choices=['default', 'start-from', 'run-stage', 'restart-all'], default='default', help='modo de execucao')
+    parser.add_argument('--stage', choices=['conversion', 'chunking', 'filtering', 'detection', 'labeling', 'review'], help='estagio alvo quando aplicavel')
+    parser.add_argument('--yes', action='store_true', help='nao perguntar confirmacoes (reinicio)')
+    parser.add_argument('--include-mp4', action='store_true', help='reinicio tambem remove videos convertidos')
+    args = parser.parse_args()
+
     print(r"""
     ╔═══════════════════════════════════════════════════════════════╗
     ║  PIPELINE AUTOMATIZADO DE DETECCAO DE FURTOS                 ║
@@ -903,9 +1182,24 @@ def main():
     
     try:
         pipeline = AutomatedPipeline()
-        pipeline.run()
+
+        if args.mode == 'default':
+            pipeline.run()
+        elif args.mode == 'restart-all':
+            pipeline.reset_all(include_mp4=args.include_mp4, assume_yes=args.yes)
+        else:
+            if not args.stage:
+                print("\nModo requer --stage. Use --stage {conversion,chunking,filtering,detection,labeling,review}")
+                sys.exit(2)
+            if args.mode == 'start-from':
+                pipeline.run_from_stage(args.stage)
+            elif args.mode == 'run-stage':
+                pipeline.run_only_stage(args.stage)
+            else:
+                print("Modo desconhecido")
+                sys.exit(2)
         
-        print("\n✅ Pipeline concluido com sucesso!")
+        print("\n✅ Operacao concluida!")
         print(f"📊 Verifique o estado em: pipeline_state.json")
         print(f"📁 Dados processados em: data_processing/")
         
