@@ -10,79 +10,78 @@ directories:
 
 # Conversao de videos DAV para MP4
 conversion:
-  use_ffmpeg: true # Tentar ffmpeg primeiro (melhor qualidade)
-  fallback_opencv: true # Usar opencv se ffmpeg falhar
-  codec: "libx264" # Codec H.264
-  preset: "fast" # fast, medium, slow
-  crf: 23 # Quality (18-28, menor = melhor qualidade)
-  audio_codec: "aac"
-  audio_bitrate: "128k"
+  use_ffmpeg: true # true: usa ffmpeg (melhor qualidade). false: usa opencv direto
+  fallback_opencv: true # true: tenta opencv se ffmpeg falhar. false: aborta em erro
+  codec: "libx264" # Codec de video. libx264=H.264 (compatibilidade maxima)
+  preset: "fast" # Velocidade de encoding. fast=rapido, medium=balanceado, slow=melhor compressao
+  crf: 23 # Qualidade video (0-51). Menor=melhor qualidade/maior arquivo. 18=quase lossless, 28=comprimido
+  audio_codec: "aac" # Codec de audio. aac=padrao moderno, mp3=alternativa
+  audio_bitrate: "128k" # Taxa de bits audio. Maior=melhor qualidade. 128k=padrao, 256k=alta qualidade
 
 # Configuracoes de chunking
 chunking:
-  chunk_duration_seconds: 180 # 3 minutos por chunk
-  codec: "mp4v" # Codec H.264
-  preserve_fps: true
-  use_gpu: true # Se true, tentar usar ffmpeg + NVENC para extracao de chunks
+  chunk_duration_seconds: 180 # Duracao de cada chunk em segundos. Maior=menos chunks/mais memoria, menor=mais chunks/processamento fragmentado
+  codec: "mp4v" # Codec para chunks. mp4v=rapido mas menos compativel, libx264=lento mas universal
+  preserve_fps: true # true: mantem FPS original. false: pode alterar FPS (nao recomendado)
+  use_gpu: true # true: usa NVENC (ffmpeg+GPU) para acelerar. false: usa CPU (mais lento)
 
 # Configuracoes de filtragem de atividade
 activity_filter:
-  motion_threshold: 0.02 # 2% de pixels com movimento
-  min_person_frames: 30 # Minimo de frames com pessoa detectada
-  person_detection_model: "yolo11n.pt" # Modelo leve para deteccao rapida
-  person_conf_threshold: 0.5 # AUMENTADO: 50% confidence minimo (antes: 0.3)
-  sample_rate_motion: 10 # Processar 1 a cada N frames para motion detection
-  sample_rate_person: 15 # Processar 1 a cada N frames para person detection
+  motion_threshold: 0.015 # Fracao de pixels com movimento (0.0-1.0). Menor=mais sensivel (aceita menos movimento), maior=descarta mais chunks estaticos
+  min_person_frames: 20 # Minimo de frames com pessoa detectada. Menor=aceita passagens rapidas, maior=exige presenca prolongada
+  person_detection_model: "yolo11n.pt" # Modelo YOLO. yolo11n=rapido/leve, yolo11m=balanceado, yolo11l=preciso/pesado
+  person_conf_threshold: 0.35 # Confianca minima pessoa (0.0-1.0). Menor=mais deteccoes/falsos positivos, maior=apenas deteccoes certeiras
+  sample_rate_motion: 10 # Processar 1 a cada N frames para motion. Menor=mais preciso/lento, maior=rapido/pode perder movimento sutil
+  sample_rate_person: 15 # Processar 1 a cada N frames para deteccao pessoa. Menor=mais preciso/lento, maior=rapido
   # Filtros de qualidade de bbox
-  min_bbox_area: 2000 # Minimo 2000 pixels (evita ruido)
-  max_bbox_area: 500000 # Maximo 500k pixels (evita deteccoes de fundo)
-  min_aspect_ratio: 0.3 # Minimo altura/largura (evita bboxes muito horizontais)
-  max_aspect_ratio: 4.0 # Maximo altura/largura (evita bboxes muito verticais)
+  min_bbox_area: 1500 # Area minima bbox em pixels. Menor=aceita pessoas distantes/pequenas, maior=descarta ruido pequeno
+  max_bbox_area: 500000 # Area maxima bbox em pixels. Menor=descarta deteccoes grandes (fundo), maior=mais permissivo
+  min_aspect_ratio: 0.25 # Proporcao altura/largura minima. Menor=aceita bboxes horizontais (pessoa deitada), maior=apenas verticais
+  max_aspect_ratio: 5.0 # Proporcao altura/largura maxima. Menor=apenas proporcoes normais, maior=aceita bboxes muito verticais
   # Corroboracao de movimento local para reduzir falsos positivos (posters/sombras)
-  min_local_motion_ratio: 0.01 # Minimo de 1% de pixels com movimento dentro da bbox
-  # Zonas para ignorar deteccoes (coordenadas normalizadas [x1,y1,x2,y2])
-  ignore_zones: []
-  ignore_overlap_threshold: 0.5 # Se overlap com zona >= 50%, ignorar
+  min_local_motion_ratio: 0.008 # Movimento dentro do bbox (0.0-1.0). Menor=aceita objetos estaticos, maior=exige movimento real (elimina posters)
+
+  ignore_overlap_threshold: 0.5 # Sobreposicao minima com zona ignorada (0.0-1.0). Menor=ignora bbox parcial, maior=ignora apenas bbox muito sobreposta
 
 # Configuracoes de deteccao de eventos
 event_detector:
-  detector_model: "yolo11n.pt" # Modelo LEVE para velocidade (antes: yolo11m.pt)
-  tracker: "bytetrack.yaml" # ByteTrack para tracking
-  conf_threshold: 0.5 # AUMENTADO: 50% confidence minimo (antes: 0.35)
-  iou_threshold: 0.5
-  min_event_duration_seconds: 1.0 # AUMENTADO: min 1s (antes: 0.8s)
-  sample_rate: 3 # Processar 1 a cada 3 frames (10 FPS) - OTIMIZACAO
+  detector_model: "yolo11n.pt" # Modelo YOLO. yolo11n=rapido/leve, yolo11m=balanceado, yolo11l=preciso/pesado
+  tracker: "bytetrack.yaml" # Algoritmo de tracking. bytetrack=robusto, botsort=alternativa
+  conf_threshold: 0.35 # Confianca minima deteccao (0.0-1.0). Menor=mais deteccoes/falsos positivos, maior=apenas certeiras
+  iou_threshold: 0.5 # IoU minimo para matching tracks (0.0-1.0). Menor=tracking rigoroso, maior=permite mais desvio entre frames
+  min_event_duration_seconds: 0.6 # Duracao minima evento em segundos. Menor=captura passagens rapidas, maior=descarta eventos curtos
+  sample_rate: 3 # Processar 1 a cada N frames. Menor=tracking preciso/lento, maior=rapido mas pode perder movimento
   # Filtros de qualidade de bbox
-  min_bbox_area: 2000 # Minimo 2000 pixels (evita ruido)
-  max_bbox_area: 500000 # Maximo 500k pixels (evita deteccoes de fundo)
-  min_aspect_ratio: 0.3 # Minimo altura/largura
-  max_aspect_ratio: 4.0 # Maximo altura/largura
+  min_bbox_area: 1500 # Area minima bbox em pixels. Menor=aceita pessoas distantes, maior=descarta deteccoes pequenas
+  max_bbox_area: 500000 # Area maxima bbox em pixels. Menor=descarta deteccoes grandes, maior=aceita qualquer tamanho
+  min_aspect_ratio: 0.25 # Proporcao altura/largura minima. Menor=aceita bboxes horizontais, maior=apenas verticais
+  max_aspect_ratio: 5.0 # Proporcao altura/largura maxima. Menor=apenas proporcoes normais, maior=aceita muito verticais
   # Filtros de tracking
-  min_track_length: 15 # Minimo 15 deteccoes por track (0.5s @ 30fps)
-  min_track_confidence_avg: 0.55 # Confianca media minima por track
-  require_motion_for_event: true # Exigir movimento minimo no track
-  min_track_movement_pixels: 12.0 # Distancia minima do centro entre inicio e fim do track
+  min_track_length: 10 # Minimo de deteccoes no track. Menor=aceita aparicoes breves, maior=exige presenca prolongada
+  min_track_confidence_avg: 0.40 # Confianca media minima track (0.0-1.0). Menor=aceita tracks incertos, maior=apenas tracks confiaveis
+  require_motion_for_event: true # true: exige movimento minimo no track (elimina estaticos). false: aceita objetos parados
+  min_track_movement_pixels: 8.0 # Movimento minimo centro track em pixels. Menor=aceita pouco movimento, maior=exige deslocamento significativo
   # Zonas para ignorar deteccoes (coordenadas normalizadas [x1,y1,x2,y2])
-  ignore_zones: []
-  ignore_overlap_threshold: 0.5
+  ignore_zones: [] # Lista de retangulos [x1,y1,x2,y2] normalizados (0.0-1.0). Exemplo: [[0.0,0.8,1.0,1.0]] ignora 20% inferior
+  ignore_overlap_threshold: 0.5 # Sobreposicao minima zona (0.0-1.0). Menor=ignora bbox parcial, maior=ignora apenas muito sobreposta
 
 # Configuracoes de rotulagem automatica
 auto_labeler:
-  detector_model: "yolo11m.pt"
+  detector_model: "yolo11m.pt" # Modelo YOLO para labeling. yolo11m=balanceado, yolo11l=mais preciso
   # Heuristicas para classificacao inicial
   heuristics:
-    normal_duration_max: 2.0 # Passou rapido = normal
-    suspicious_duration_min: 10.0 # Tempo longo na area = suspeito
-    suspicious_frame_threshold: 150 # Frames @ 30fps
+    normal_duration_max: 2.0 # Duracao maxima em segundos para classificar como normal. Menor=mais restritivo, maior=aceita permanencias longas como normal
+    suspicious_duration_min: 10.0 # Duracao minima em segundos para classificar como suspeito. Menor=marca eventos curtos suspeitos, maior=apenas permanencias longas
+    suspicious_frame_threshold: 150 # Numero minimo frames para suspeito (@30fps = 5s). Menor=mais suspeitos, maior=exige permanencia prolongada
 
 # Configuracoes de integracao CVAT
 cvat:
-  enabled: false # Habilitar quando CVAT estiver configurado
-  url: "http://localhost:8080"
-  username: "admin"
-  password: "admin"
-  project_id: null
-  labels:
+  enabled: false # true: habilita upload automatico para CVAT. false: gera apenas arquivos locais
+  url: "http://localhost:8080" # URL do servidor CVAT
+  username: "admin" # Usuario CVAT
+  password: "admin" # Senha CVAT
+  project_id: null # ID do projeto CVAT (null=criar novo)
+  labels: # Classes de rotulos disponiveis
     - "comportamento_normal"
     - "furto_discreto"
     - "furto_bolsa_mochila"
@@ -98,27 +97,27 @@ logging:
 
 # Configuracoes de performance
 performance:
-  max_workers: 4 # Paralelismo
-  cache_enabled: true
-  cache_size: 1000
+  max_workers: 4 # Numero maximo threads paralelas. Maior=mais rapido/mais memoria, menor=sequencial/menos memoria
+  cache_enabled: true # true: armazena resultados em cache. false: recalcula sempre (mais lento)
+  cache_size: 1000 # Tamanho maximo cache em entradas. Maior=mais memoria/menos recalculo, menor=economiza memoria
 
 # Gerenciamento de estado
 state:
-  file: "pipeline_state.json" # Arquivo de estado do processamento
-  auto_resume: true # Retomar processamento automaticamente
+  file: "pipeline_state.json" # Nome do arquivo JSON de estado
+  auto_resume: true # true: retoma processamento do ultimo ponto. false: recomeca do zero (ignora estado anterior)
 
 # Configuracoes de revisao humana
 review:
-  auto_open: true # Abrir GUI de revisao automaticamente sem perguntar
+  auto_open: true # true: abre GUI de revisao automaticamente ao gerar propostas. false: pergunta antes de abrir
 
 # Configuracoes de tentativas (retries)
 retries:
   detection:
-    max_attempts: 3
-    backoff_seconds: 8
+    max_attempts: 3 # Numero maximo de tentativas em falha. Maior=mais resiliente/lento em erro, menor=falha rapido
+    backoff_seconds: 8 # Tempo espera entre tentativas em segundos. Maior=recuperacao lenta, menor=retenta rapido
   labeling:
-    max_attempts: 3
-    backoff_seconds: 5
+    max_attempts: 3 # Numero maximo de tentativas em falha
+    backoff_seconds: 5 # Tempo espera entre tentativas em segundos
 #    __  ____ ____ _  _
 #  / _\/ ___) ___) )( \
 # /    \___ \___ ) \/ (
