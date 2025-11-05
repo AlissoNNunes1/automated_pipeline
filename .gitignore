@@ -1,5 +1,5 @@
 # Dados de processamento (temporarios e grandes)
-data_processing/
+
 *.mp4
 *.avi
 *.mov
@@ -10,9 +10,6 @@ data_processing/
 *.weights
 *.onnx
 
-# Logs
-*.log
-automated_pipeline.log
 
 # Cache Python
 __pycache__/
@@ -43,16 +40,11 @@ ENV/
 Thumbs.db
 desktop.ini
 
-# Estado do pipeline
-pipeline_state.json
-review_progress.json
+
 
 # Outputs temporarios
 chunks/
-active_chunks/
-events/
-proposals/
-annotations/
+
 
 # Dataset YOLO gerado (pode ser grande)
 yolo_dataset/

@@ -1,0 +1,330 @@
+2025-10-23 17:30:16 - INFO - Pipeline automatizado inicializado
+2025-10-23 17:30:16 - INFO - Videos fonte: videos_full
+2025-10-23 17:30:16 - INFO - Videos convertidos: videos_converted
+2025-10-23 17:30:16 - INFO - Dados de processamento: data_processing
+2025-10-23 17:30:16 - INFO - ================================================================================
+2025-10-23 17:30:16 - INFO - INICIANDO PIPELINE AUTOMATIZADO
+2025-10-23 17:30:16 - INFO - ================================================================================
+2025-10-23 17:30:17 - WARNING - ffmpeg nao encontrado no PATH; chunking via GPU sera desabilitado
+2025-10-23 17:30:17 - INFO - 
+--- PRE-FLIGHT ---
+2025-10-23 17:30:17 - INFO - Python: 3.12.6  VENV: nenhum
+2025-10-23 17:30:17 - INFO - Torch: 2.4.1+cu121  CUDA disponivel: True  GPUs: 1
+2025-10-23 17:30:17 - INFO - ffmpeg: nao encontrado  NVENC: False
+2025-10-23 17:30:17 - INFO - Espaco livre em data_processing: 884.0 GB
+2025-10-23 17:30:17 - INFO - Nenhum arquivo .dav encontrado em videos_full
+2025-10-23 17:30:17 - INFO - Verificando arquivos MP4 ja convertidos...
+2025-10-23 17:30:17 - INFO - Encontrados 1 arquivos MP4 convertidos
+2025-10-23 17:30:17 - INFO - 
+================================================================================
+2025-10-23 17:30:17 - INFO - PROCESSANDO MP4 [1/1]: 1.dav
+2025-10-23 17:30:17 - INFO - ================================================================================
+2025-10-23 17:30:17 - INFO - Iniciando do estagio: chunking
+2025-10-23 17:30:17 - INFO - 
+--- ESTAGIO 2: CHUNKING ---
+2025-10-23 17:30:59 - INFO - Pipeline automatizado inicializado
+2025-10-23 17:30:59 - INFO - Videos fonte: videos_full
+2025-10-23 17:30:59 - INFO - Videos convertidos: videos_converted
+2025-10-23 17:30:59 - INFO - Dados de processamento: data_processing
+2025-10-23 17:30:59 - INFO - ================================================================================
+2025-10-23 17:30:59 - INFO - INICIANDO PIPELINE AUTOMATIZADO
+2025-10-23 17:30:59 - INFO - ================================================================================
+2025-10-23 17:31:00 - WARNING - ffmpeg nao encontrado no PATH; chunking via GPU sera desabilitado
+2025-10-23 17:31:00 - INFO - 
+--- PRE-FLIGHT ---
+2025-10-23 17:31:00 - INFO - Python: 3.12.6  VENV: nenhum
+2025-10-23 17:31:00 - INFO - Torch: 2.4.1+cu121  CUDA disponivel: True  GPUs: 1
+2025-10-23 17:31:00 - INFO - ffmpeg: nao encontrado  NVENC: False
+2025-10-23 17:31:00 - INFO - Espaco livre em data_processing: 884.1 GB
+2025-10-23 17:31:00 - INFO - Nenhum arquivo .dav encontrado em videos_full
+2025-10-23 17:31:00 - INFO - Verificando arquivos MP4 ja convertidos...
+2025-10-23 17:31:00 - INFO - Encontrados 1 arquivos MP4 convertidos
+2025-10-23 17:31:00 - INFO - 
+================================================================================
+2025-10-23 17:31:00 - INFO - PROCESSANDO MP4 [1/1]: 1.dav
+2025-10-23 17:31:00 - INFO - ================================================================================
+2025-10-23 17:31:00 - INFO - Iniciando do estagio: filtering
+2025-10-23 17:31:00 - INFO - 
+--- ESTAGIO 3: ACTIVITY FILTERING ---
+2025-10-23 17:49:13 - INFO - 
+--- ESTAGIO 4: EVENT DETECTION ---
+2025-10-23 17:49:13 - INFO - Carregando EventDetector com modelo yolo11n.pt (tentativa 1/3)...
+2025-10-23 17:49:13 - INFO - EventDetector carregado com sucesso!
+2025-10-23 20:58:17 - INFO - 
+--- ESTAGIO 5: AUTO LABELING ---
+2025-10-23 20:59:59 - INFO - ✅ Processamento completo para: 1.dav
+2025-10-23 21:21:46 - INFO - Pipeline automatizado inicializado
+2025-10-23 21:21:46 - INFO - Videos fonte: videos_full
+2025-10-23 21:21:46 - INFO - Videos convertidos: videos_converted
+2025-10-23 21:21:46 - INFO - Dados de processamento: data_processing
+2025-10-23 21:21:46 - INFO - ================================================================================
+2025-10-23 21:21:46 - INFO - INICIANDO PIPELINE AUTOMATIZADO
+2025-10-23 21:21:46 - INFO - ================================================================================
+2025-10-23 21:21:48 - WARNING - ffmpeg nao encontrado no PATH; chunking via GPU sera desabilitado
+2025-10-23 21:21:48 - INFO - 
+--- PRE-FLIGHT ---
+2025-10-23 21:21:48 - INFO - Python: 3.12.6  VENV: nenhum
+2025-10-23 21:21:48 - INFO - Torch: 2.4.1+cu121  CUDA disponivel: True  GPUs: 1
+2025-10-23 21:21:48 - INFO - ffmpeg: nao encontrado  NVENC: False
+2025-10-23 21:21:48 - INFO - Espaco livre em data_processing: 883.9 GB
+2025-10-23 21:21:48 - INFO - Nenhum arquivo .dav encontrado em videos_full
+2025-10-23 21:21:48 - INFO - Verificando arquivos MP4 ja convertidos...
+2025-10-23 21:21:48 - INFO - Encontrados 1 arquivos MP4 convertidos
+2025-10-23 21:21:48 - INFO - 
+================================================================================
+2025-10-23 21:21:48 - INFO - PROCESSANDO MP4 [1/1]: 1.dav
+2025-10-23 21:21:48 - INFO - ================================================================================
+2025-10-23 21:21:48 - INFO - Iniciando do estagio: review
+2025-10-23 21:21:48 - INFO - ✅ Processamento completo para: 1.dav
+2025-10-23 22:12:25 - INFO - Pipeline automatizado inicializado
+2025-10-23 22:12:25 - INFO - Videos fonte: videos_full
+2025-10-23 22:12:25 - INFO - Videos convertidos: videos_converted
+2025-10-23 22:12:25 - INFO - Dados de processamento: data_processing
+2025-10-23 22:12:25 - INFO - ================================================================================
+2025-10-23 22:12:25 - INFO - INICIANDO PIPELINE AUTOMATIZADO
+2025-10-23 22:12:25 - INFO - ================================================================================
+2025-10-23 22:12:26 - WARNING - ffmpeg nao encontrado no PATH; chunking via GPU sera desabilitado
+2025-10-23 22:12:26 - INFO - 
+--- PRE-FLIGHT ---
+2025-10-23 22:12:26 - INFO - Python: 3.12.6  VENV: nenhum
+2025-10-23 22:12:26 - INFO - Torch: 2.4.1+cu121  CUDA disponivel: True  GPUs: 1
+2025-10-23 22:12:26 - INFO - ffmpeg: nao encontrado  NVENC: False
+2025-10-23 22:12:26 - INFO - Espaco livre em data_processing: 883.9 GB
+2025-10-23 22:12:26 - INFO - Nenhum arquivo .dav encontrado em videos_full
+2025-10-23 22:12:26 - INFO - Verificando arquivos MP4 ja convertidos...
+2025-10-23 22:12:26 - INFO - Encontrados 1 arquivos MP4 convertidos
+2025-10-23 22:12:26 - INFO - 
+================================================================================
+2025-10-23 22:12:26 - INFO - PROCESSANDO MP4 [1/1]: 1.dav
+2025-10-23 22:12:26 - INFO - ================================================================================
+2025-10-23 22:12:26 - INFO - Iniciando do estagio: review
+2025-10-23 22:12:26 - INFO - ✅ Processamento completo para: 1.dav
+2025-10-23 23:16:25 - INFO - Pipeline automatizado inicializado
+2025-10-23 23:16:25 - INFO - Videos fonte: videos_full
+2025-10-23 23:16:25 - INFO - Videos convertidos: videos_converted
+2025-10-23 23:16:25 - INFO - Dados de processamento: data_processing
+2025-10-23 23:16:25 - INFO - ================================================================================
+2025-10-23 23:16:25 - INFO - MODO START-FROM: iniciando do estagio filtering
+2025-10-23 23:16:25 - INFO - ================================================================================
+2025-10-23 23:16:26 - INFO - 
+------------------------------------------------------------
+2025-10-23 23:16:26 - INFO - [1/1] Video: 1.dav
+2025-10-23 23:16:26 - INFO - Iniciando do estagio: review
+2025-10-23 23:16:26 - INFO - ✅ Processamento completo para: 1.dav
+2025-10-23 23:16:46 - INFO - Pipeline automatizado inicializado
+2025-10-23 23:16:46 - INFO - Videos fonte: videos_full
+2025-10-23 23:16:46 - INFO - Videos convertidos: videos_converted
+2025-10-23 23:16:46 - INFO - Dados de processamento: data_processing
+2025-10-23 23:16:46 - INFO - ================================================================================
+2025-10-23 23:16:46 - INFO - MODO START-FROM: iniciando do estagio filtering
+2025-10-23 23:16:46 - INFO - ================================================================================
+2025-10-23 23:16:46 - INFO - 
+------------------------------------------------------------
+2025-10-23 23:16:46 - INFO - [1/1] Video: 1.dav
+2025-10-23 23:16:46 - INFO - Iniciando do estagio: chunking
+2025-10-23 23:16:46 - INFO - 
+--- ESTAGIO 2: CHUNKING ---
+2025-10-23 23:17:14 - INFO - Pipeline automatizado inicializado
+2025-10-23 23:17:14 - INFO - Videos fonte: videos_full
+2025-10-23 23:17:14 - INFO - Videos convertidos: videos_converted
+2025-10-23 23:17:14 - INFO - Dados de processamento: data_processing
+2025-10-23 23:17:14 - INFO - ================================================================================
+2025-10-23 23:17:14 - INFO - MODO START-FROM: iniciando do estagio filtering
+2025-10-23 23:17:14 - INFO - ================================================================================
+2025-10-23 23:17:14 - INFO - 
+------------------------------------------------------------
+2025-10-23 23:17:14 - INFO - [1/1] Video: 1.dav
+2025-10-23 23:17:14 - INFO - Iniciando do estagio: filtering
+2025-10-23 23:17:14 - ERROR - Arquivo de index de chunks nao encontrado: data_processing\1\chunks\chunks_index.json
+2025-10-23 23:17:26 - INFO - Pipeline automatizado inicializado
+2025-10-23 23:17:26 - INFO - Videos fonte: videos_full
+2025-10-23 23:17:26 - INFO - Videos convertidos: videos_converted
+2025-10-23 23:17:26 - INFO - Dados de processamento: data_processing
+2025-10-23 23:17:26 - INFO - ================================================================================
+2025-10-23 23:17:26 - INFO - INICIANDO PIPELINE AUTOMATIZADO
+2025-10-23 23:17:26 - INFO - ================================================================================
+2025-10-23 23:17:27 - WARNING - ffmpeg nao encontrado no PATH; chunking via GPU sera desabilitado
+2025-10-23 23:17:27 - INFO - 
+--- PRE-FLIGHT ---
+2025-10-23 23:17:27 - INFO - Python: 3.12.6  VENV: nenhum
+2025-10-23 23:17:27 - INFO - Torch: 2.4.1+cu121  CUDA disponivel: True  GPUs: 1
+2025-10-23 23:17:27 - INFO - ffmpeg: nao encontrado  NVENC: False
+2025-10-23 23:17:27 - INFO - Espaco livre em data_processing: 883.8 GB
+2025-10-23 23:17:27 - INFO - Nenhum arquivo .dav encontrado em videos_full
+2025-10-23 23:17:27 - INFO - Verificando arquivos MP4 ja convertidos...
+2025-10-23 23:17:27 - INFO - Encontrados 1 arquivos MP4 convertidos
+2025-10-23 23:17:27 - INFO - 
+================================================================================
+2025-10-23 23:17:27 - INFO - PROCESSANDO MP4 [1/1]: 1.dav
+2025-10-23 23:17:27 - INFO - ================================================================================
+2025-10-23 23:17:27 - INFO - Iniciando do estagio: filtering
+2025-10-23 23:17:27 - ERROR - Arquivo de index de chunks nao encontrado: data_processing\1\chunks\chunks_index.json
+2025-10-23 23:19:04 - INFO - Pipeline automatizado inicializado
+2025-10-23 23:19:04 - INFO - Videos fonte: videos_full
+2025-10-23 23:19:04 - INFO - Videos convertidos: videos_converted
+2025-10-23 23:19:04 - INFO - Dados de processamento: data_processing
+2025-10-23 23:19:04 - INFO - ================================================================================
+2025-10-23 23:19:04 - INFO - INICIANDO PIPELINE AUTOMATIZADO
+2025-10-23 23:19:04 - INFO - ================================================================================
+2025-10-23 23:19:05 - WARNING - ffmpeg nao encontrado no PATH; chunking via GPU sera desabilitado
+2025-10-23 23:19:05 - INFO - 
+--- PRE-FLIGHT ---
+2025-10-23 23:19:05 - INFO - Python: 3.12.6  VENV: nenhum
+2025-10-23 23:19:05 - INFO - Torch: 2.4.1+cu121  CUDA disponivel: True  GPUs: 1
+2025-10-23 23:19:05 - INFO - ffmpeg: nao encontrado  NVENC: False
+2025-10-23 23:19:05 - INFO - Espaco livre em data_processing: 883.8 GB
+2025-10-23 23:19:05 - INFO - Nenhum arquivo .dav encontrado em videos_full
+2025-10-23 23:19:05 - INFO - Verificando arquivos MP4 ja convertidos...
+2025-10-23 23:19:05 - INFO - Encontrados 1 arquivos MP4 convertidos
+2025-10-23 23:19:05 - INFO - 
+================================================================================
+2025-10-23 23:19:05 - INFO - PROCESSANDO MP4 [1/1]: 1.dav
+2025-10-23 23:19:05 - INFO - ================================================================================
+2025-10-23 23:19:05 - INFO - Iniciando do estagio: filtering
+2025-10-23 23:19:05 - ERROR - Arquivo de index de chunks nao encontrado: data_processing\1\chunks\chunks_index.json
+2025-10-23 23:23:00 - INFO - Pipeline automatizado inicializado
+2025-10-23 23:23:00 - INFO - Videos fonte: videos_full
+2025-10-23 23:23:00 - INFO - Videos convertidos: videos_converted
+2025-10-23 23:23:00 - INFO - Dados de processamento: data_processing
+2025-10-23 23:23:00 - INFO - ================================================================================
+2025-10-23 23:23:00 - INFO - INICIANDO PIPELINE AUTOMATIZADO
+2025-10-23 23:23:00 - INFO - ================================================================================
+2025-10-23 23:23:01 - WARNING - ffmpeg nao encontrado no PATH; chunking via GPU sera desabilitado
+2025-10-23 23:23:01 - INFO - 
+--- PRE-FLIGHT ---
+2025-10-23 23:23:01 - INFO - Python: 3.12.6  VENV: nenhum
+2025-10-23 23:23:01 - INFO - Torch: 2.4.1+cu121  CUDA disponivel: True  GPUs: 1
+2025-10-23 23:23:01 - INFO - ffmpeg: nao encontrado  NVENC: False
+2025-10-23 23:23:01 - INFO - Espaco livre em data_processing: 906.3 GB
+2025-10-23 23:23:01 - INFO - Nenhum arquivo .dav encontrado em videos_full
+2025-10-23 23:23:01 - INFO - Verificando arquivos MP4 ja convertidos...
+2025-10-23 23:23:01 - INFO - Encontrados 1 arquivos MP4 convertidos
+2025-10-23 23:23:01 - INFO - 
+================================================================================
+2025-10-23 23:23:01 - INFO - PROCESSANDO MP4 [1/1]: 1.dav
+2025-10-23 23:23:01 - INFO - ================================================================================
+2025-10-23 23:23:01 - INFO - Iniciando do estagio: chunking
+2025-10-23 23:23:01 - INFO - 
+--- ESTAGIO 2: CHUNKING ---
+2025-10-24 00:47:31 - INFO - 
+--- ESTAGIO 3: ACTIVITY FILTERING ---
+2025-10-24 01:07:21 - INFO - 
+--- ESTAGIO 4: EVENT DETECTION ---
+2025-10-24 01:07:21 - INFO - Carregando EventDetector com modelo yolo11n.pt (tentativa 1/3)...
+2025-10-24 01:07:21 - INFO - EventDetector carregado com sucesso!
+2025-10-24 03:54:31 - INFO - 
+--- ESTAGIO 5: AUTO LABELING ---
+2025-10-24 03:54:31 - INFO - ✅ Processamento completo para: 1.dav
+2025-10-24 10:14:23 - INFO - Pipeline automatizado inicializado
+2025-10-24 10:14:23 - INFO - Videos fonte: videos_full
+2025-10-24 10:14:23 - INFO - Videos convertidos: videos_converted
+2025-10-24 10:14:23 - INFO - Dados de processamento: data_processing
+2025-10-24 10:14:23 - INFO - ================================================================================
+2025-10-24 10:14:23 - INFO - MODO START-FROM: iniciando do estagio labeling
+2025-10-24 10:14:23 - INFO - ================================================================================
+2025-10-24 10:14:23 - INFO - 
+------------------------------------------------------------
+2025-10-24 10:14:23 - INFO - [1/1] Video: 1.dav
+2025-10-24 10:14:23 - INFO - Iniciando do estagio: review
+2025-10-24 10:14:23 - INFO - ✅ Processamento completo para: 1.dav
+2025-10-24 10:16:21 - INFO - Pipeline automatizado inicializado
+2025-10-24 10:16:21 - INFO - Videos fonte: videos_full
+2025-10-24 10:16:21 - INFO - Videos convertidos: videos_converted
+2025-10-24 10:16:21 - INFO - Dados de processamento: data_processing
+2025-10-24 10:16:21 - INFO - ================================================================================
+2025-10-24 10:16:21 - INFO - MODO START-FROM: iniciando do estagio detection
+2025-10-24 10:16:21 - INFO - ================================================================================
+2025-10-24 10:16:21 - INFO - 
+------------------------------------------------------------
+2025-10-24 10:16:21 - INFO - [1/1] Video: 1.dav
+2025-10-24 10:16:21 - INFO - Iniciando do estagio: review
+2025-10-24 10:16:21 - INFO - ✅ Processamento completo para: 1.dav
+2025-10-24 10:31:40 - INFO - Pipeline automatizado inicializado
+2025-10-24 10:31:40 - INFO - Videos fonte: videos_full
+2025-10-24 10:31:40 - INFO - Videos convertidos: videos_converted
+2025-10-24 10:31:40 - INFO - Dados de processamento: data_processing
+2025-10-24 10:31:40 - INFO - ================================================================================
+2025-10-24 10:31:40 - INFO - MODO START-FROM: iniciando do estagio detection
+2025-10-24 10:31:40 - INFO - ================================================================================
+2025-10-24 10:31:40 - INFO - 
+------------------------------------------------------------
+2025-10-24 10:31:40 - INFO - [1/1] Video: 1.dav
+2025-10-24 10:31:40 - INFO - Iniciando do estagio: detection
+2025-10-24 10:31:40 - INFO - 
+--- ESTAGIO 4: EVENT DETECTION ---
+2025-10-24 10:31:40 - INFO - Carregando EventDetector com modelo yolo11m.pt (tentativa 1/3)...
+2025-10-24 10:31:44 - INFO - EventDetector carregado com sucesso!
+2025-10-24 15:33:24 - INFO - 
+--- ESTAGIO 5: AUTO LABELING ---
+2025-10-24 15:33:24 - INFO - ✅ Processamento completo para: 1.dav
+2025-10-28 16:29:01 - INFO - Pipeline automatizado inicializado
+2025-10-28 16:29:01 - INFO - Videos fonte: videos_full
+2025-10-28 16:29:01 - INFO - Videos convertidos: videos_converted
+2025-10-28 16:29:01 - INFO - Dados de processamento: data_processing
+2025-10-28 16:29:01 - INFO - ================================================================================
+2025-10-28 16:29:01 - INFO - MODO START-FROM: iniciando do estagio detection
+2025-10-28 16:29:01 - INFO - ================================================================================
+2025-10-28 16:29:01 - INFO - 
+------------------------------------------------------------
+2025-10-28 16:29:01 - INFO - [1/1] Video: 1.dav
+2025-10-28 16:29:01 - INFO - Iniciando do estagio: detection
+2025-10-28 16:29:01 - INFO - 
+--- ESTAGIO 4: EVENT DETECTION ---
+2025-10-28 16:29:01 - INFO - Carregando EventDetector com modelo yolo11m.pt (tentativa 1/3)...
+2025-10-28 16:29:02 - INFO - EventDetector carregado com sucesso!
+2025-10-28 21:31:19 - INFO - 
+--- ESTAGIO 5: AUTO LABELING ---
+2025-10-28 21:31:19 - INFO - ✅ Processamento completo para: 1.dav
+2025-10-30 19:36:37 - INFO - Pipeline automatizado inicializado
+2025-10-30 19:36:37 - INFO - Videos fonte: videos_full
+2025-10-30 19:36:37 - INFO - Videos convertidos: videos_converted
+2025-10-30 19:36:37 - INFO - Dados de processamento: data_processing
+2025-10-30 19:36:37 - INFO - ================================================================================
+2025-10-30 19:36:37 - INFO - MODO START-FROM: iniciando do estagio detection
+2025-10-30 19:36:37 - INFO - ================================================================================
+2025-10-30 19:36:37 - INFO - 
+------------------------------------------------------------
+2025-10-30 19:36:37 - INFO - [1/1] Video: 1.dav
+2025-10-30 19:36:37 - INFO - Iniciando do estagio: detection
+2025-10-30 19:36:37 - INFO - 
+--- ESTAGIO 4: EVENT DETECTION ---
+2025-10-30 19:36:37 - INFO - Carregando EventDetector com modelo yolo11n.pt (tentativa 1/3)...
+2025-10-30 19:36:38 - INFO - EventDetector carregado com sucesso!
+2025-10-30 22:32:55 - INFO - 
+--- ESTAGIO 5: AUTO LABELING ---
+2025-10-30 22:32:55 - INFO - ✅ Processamento completo para: 1.dav
+2025-11-04 16:42:29 - INFO - Pipeline automatizado inicializado
+2025-11-04 16:42:29 - INFO - Videos fonte: videos_full
+2025-11-04 16:42:29 - INFO - Videos convertidos: videos_converted
+2025-11-04 16:42:29 - INFO - Dados de processamento: data_processing
+2025-11-04 16:42:29 - INFO - ================================================================================
+2025-11-04 16:42:29 - INFO - MODO START-FROM: iniciando do estagio detection
+2025-11-04 16:42:29 - INFO - ================================================================================
+2025-11-04 16:42:29 - INFO - 
+------------------------------------------------------------
+2025-11-04 16:42:29 - INFO - [1/1] Video: 1.dav
+2025-11-04 16:42:29 - INFO - Iniciando do estagio: detection
+2025-11-04 16:42:29 - INFO - 
+--- ESTAGIO 4: EVENT DETECTION ---
+2025-11-04 16:42:29 - INFO - Carregando EventDetector com modelo yolo11n.pt (tentativa 1/3)...
+2025-11-04 16:42:29 - WARNING - Falha na detection tentativa 1/3: EventDetector.__init__() got an unexpected keyword argument 'ignore_zones'
+2025-11-04 16:42:37 - INFO - Carregando EventDetector com modelo yolo11n.pt (tentativa 2/3)...
+2025-11-04 16:42:37 - WARNING - Falha na detection tentativa 2/3: EventDetector.__init__() got an unexpected keyword argument 'ignore_zones'
+2025-11-04 16:43:24 - INFO - Pipeline automatizado inicializado
+2025-11-04 16:43:24 - INFO - Videos fonte: videos_full
+2025-11-04 16:43:24 - INFO - Videos convertidos: videos_converted
+2025-11-04 16:43:24 - INFO - Dados de processamento: data_processing
+2025-11-04 16:43:24 - INFO - ================================================================================
+2025-11-04 16:43:24 - INFO - MODO START-FROM: iniciando do estagio detection
+2025-11-04 16:43:24 - INFO - ================================================================================
+2025-11-04 16:43:24 - INFO - 
+------------------------------------------------------------
+2025-11-04 16:43:24 - INFO - [1/1] Video: 1.dav
+2025-11-04 16:43:24 - INFO - Iniciando do estagio: detection
+2025-11-04 16:43:24 - INFO - 
+--- ESTAGIO 4: EVENT DETECTION ---
+2025-11-04 16:43:24 - INFO - Carregando EventDetector com modelo yolo11n.pt (tentativa 1/3)...
+2025-11-04 16:43:25 - INFO - EventDetector carregado com sucesso!
+2025-11-04 19:50:04 - INFO - 
+--- ESTAGIO 5: AUTO LABELING ---
+2025-11-04 19:50:04 - INFO - ✅ Processamento completo para: 1.dav

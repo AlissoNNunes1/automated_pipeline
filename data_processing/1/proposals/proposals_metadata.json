@@ -1,0 +1,29 @@
+{
+  "statistics": {
+    "total_events": 0,
+    "proposals_by_class": {},
+    "confidence_distribution": {
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "processing_time_seconds": 0.0,
+    "start_time": "2025-11-04T19:50:04.755125",
+    "end_time": "2025-11-04T19:50:04.755125"
+  },
+  "proposals": [],
+  "class_names": [
+    "comportamento_normal",
+    "furto_discreto",
+    "furto_bolsa_mochila",
+    "furto_grupo_colaborativo",
+    "acoes_ambiguas_suspeitas",
+    "funcionario_reposicao"
+  ],
+  "labeler_config": {
+    "normal_max_duration": 2.0,
+    "suspicious_min_duration": 10.0,
+    "suspicious_min_frames": 150,
+    "high_confidence_threshold": 0.7
+  }
+}

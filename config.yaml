@@ -50,20 +50,17 @@ event_detector:
   conf_threshold: 0.35 # Confianca minima deteccao (0.0-1.0). Menor=mais deteccoes/falsos positivos, maior=apenas certeiras
   iou_threshold: 0.5 # IoU minimo para matching tracks (0.0-1.0). Menor=tracking rigoroso, maior=permite mais desvio entre frames
   min_event_duration_seconds: 0.6 # Duracao minima evento em segundos. Menor=captura passagens rapidas, maior=descarta eventos curtos
-  sample_rate: 3 # Processar 1 a cada N frames. Menor=tracking preciso/lento, maior=rapido mas pode perder movimento
+  sample_rate: 2 # Processar 1 a cada N frames. Menor=tracking preciso/lento, maior=rapido mas pode perder movimento
   # Filtros de qualidade de bbox
-  min_bbox_area: 1500 # Area minima bbox em pixels. Menor=aceita pessoas distantes, maior=descarta deteccoes pequenas
+  min_bbox_area: 1000 # Area minima bbox em pixels. Menor=aceita pessoas distantes, maior=descarta deteccoes pequenas
   max_bbox_area: 500000 # Area maxima bbox em pixels. Menor=descarta deteccoes grandes, maior=aceita qualquer tamanho
-  min_aspect_ratio: 0.25 # Proporcao altura/largura minima. Menor=aceita bboxes horizontais, maior=apenas verticais
+  min_aspect_ratio: 0.22 # Proporcao altura/largura minima. Menor=aceita bboxes horizontais, maior=apenas verticais
   max_aspect_ratio: 5.0 # Proporcao altura/largura maxima. Menor=apenas proporcoes normais, maior=aceita muito verticais
   # Filtros de tracking
   min_track_length: 10 # Minimo de deteccoes no track. Menor=aceita aparicoes breves, maior=exige presenca prolongada
   min_track_confidence_avg: 0.40 # Confianca media minima track (0.0-1.0). Menor=aceita tracks incertos, maior=apenas tracks confiaveis
   require_motion_for_event: true # true: exige movimento minimo no track (elimina estaticos). false: aceita objetos parados
-  min_track_movement_pixels: 8.0 # Movimento minimo centro track em pixels. Menor=aceita pouco movimento, maior=exige deslocamento significativo
-  # Zonas para ignorar deteccoes (coordenadas normalizadas [x1,y1,x2,y2])
-  ignore_zones: [] # Lista de retangulos [x1,y1,x2,y2] normalizados (0.0-1.0). Exemplo: [[0.0,0.8,1.0,1.0]] ignora 20% inferior
-  ignore_overlap_threshold: 0.5 # Sobreposicao minima zona (0.0-1.0). Menor=ignora bbox parcial, maior=ignora apenas muito sobreposta
+  min_track_movement_pixels: 5.0 # Movimento minimo centro track em pixels. Menor=aceita pouco movimento, maior=exige deslocamento significativo
 
 # Configuracoes de rotulagem automatica
 auto_labeler:

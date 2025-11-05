@@ -51,8 +51,7 @@ class ActivityFilter:
         min_aspect_ratio: float = 0.3,
         max_aspect_ratio: float = 4.0,
         min_local_motion_ratio: float = 0.01,
-        ignore_zones: Optional[List[List[float]]] = None,
-        ignore_overlap_threshold: float = 0.5
+       
     ):
         """
         Inicializa ActivityFilter
@@ -79,8 +78,7 @@ class ActivityFilter:
         self.min_aspect_ratio = min_aspect_ratio
         self.max_aspect_ratio = max_aspect_ratio
         self.min_local_motion_ratio = min_local_motion_ratio
-        self.ignore_zones = ignore_zones or []  # lista de bboxes normalizadas [x1,y1,x2,y2]
-        self.ignore_overlap_threshold = ignore_overlap_threshold
+        
         
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
@@ -396,31 +394,7 @@ class ActivityFilter:
         total_pixels = roi.size if roi.size > 0 else 1
         return motion_pixels / float(total_pixels)
 
-    def _bbox_overlaps_ignore(self, bbox: Tuple[float, float, float, float], frame_w: int, frame_h: int) -> bool:
-        """
-        Verifica se bbox sobrepoe significativamente alguma zona de ignore
-        Zonas sao fornecidas normalizadas [0..1]
-        """
-        if not self.ignore_zones or frame_w <= 0 or frame_h <= 0:
-            return False
-        x1, y1, x2, y2 = bbox
-        box_area = max(1.0, (x2 - x1) * (y2 - y1))
-        for nz in self.ignore_zones:
-            zx1, zy1, zx2, zy2 = nz
-            ax1 = zx1 * frame_w
-            ay1 = zy1 * frame_h
-            ax2 = zx2 * frame_w
-            ay2 = zy2 * frame_h
-            ix1 = max(x1, ax1)
-            iy1 = max(y1, ay1)
-            ix2 = min(x2, ax2)
-            iy2 = min(y2, ay2)
-            iw = max(0.0, ix2 - ix1)
-            ih = max(0.0, iy2 - iy1)
-            inter = iw * ih
-            if inter / box_area >= self.ignore_overlap_threshold:
-                return True
-        return False
+    
     
     def _save_report(
         self,

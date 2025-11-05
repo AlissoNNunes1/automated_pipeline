@@ -57,8 +57,7 @@ class EventDetector:
         min_track_confidence_avg: float = 0.55,
         require_motion_for_event: bool = True,
         min_track_movement_pixels: float = 12.0,
-        ignore_zones: Optional[List[List[float]]] = None,
-        ignore_overlap_threshold: float = 0.5
+        
     ):
         """
         Inicializa EventDetector
@@ -90,8 +89,7 @@ class EventDetector:
         self.min_track_confidence_avg = min_track_confidence_avg
         self.require_motion_for_event = require_motion_for_event
         self.min_track_movement_pixels = min_track_movement_pixels
-        self.ignore_zones = ignore_zones or []
-        self.ignore_overlap_threshold = ignore_overlap_threshold
+      
         
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
@@ -449,30 +447,7 @@ class EventDetector:
         
         return events
 
-    def _bbox_overlaps_ignore(self, bbox: Tuple[float, float, float, float], frame_w: Optional[int], frame_h: Optional[int]) -> bool:
-        """
-        Verifica se bbox sobrepoe significativamente alguma zona de ignore (normalizada)
-        """
-        if not self.ignore_zones or not frame_w or not frame_h:
-            return False
-        x1, y1, x2, y2 = bbox
-        box_area = max(1.0, (x2 - x1) * (y2 - y1))
-        for nz in self.ignore_zones:
-            zx1, zy1, zx2, zy2 = nz
-            ax1 = zx1 * frame_w
-            ay1 = zy1 * frame_h
-            ax2 = zx2 * frame_w
-            ay2 = zy2 * frame_h
-            ix1 = max(x1, ax1)
-            iy1 = max(y1, ay1)
-            ix2 = min(x2, ax2)
-            iy2 = min(y2, ay2)
-            iw = max(0.0, ix2 - ix1)
-            ih = max(0.0, iy2 - iy1)
-            inter = iw * ih
-            if inter / box_area >= self.ignore_overlap_threshold:
-                return True
-        return False
+    
     
     def _save_events(
         self,

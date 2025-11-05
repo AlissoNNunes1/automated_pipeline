@@ -1,0 +1,58 @@
+{
+  "1.dav": {
+    "status": "processing",
+    "stages": {
+      "conversion": {
+        "status": "completed",
+        "completed_at": "2025-11-04T16:43:24.716929",
+        "output": "videos_converted\\1_converted.mp4",
+        "metadata": {
+          "fast_forward": true
+        }
+      },
+      "chunking": {
+        "status": "completed",
+        "started_at": "2025-10-23T23:23:01.646788",
+        "completed_at": "2025-11-04T16:43:24.717929",
+        "output": "data_processing\\1\\chunks\\chunks_index.json",
+        "metadata": {
+          "fast_forward": true
+        }
+      },
+      "filtering": {
+        "status": "completed",
+        "started_at": "2025-10-24T00:47:31.276070",
+        "completed_at": "2025-11-04T16:43:24.718929",
+        "output": "data_processing\\1\\active_chunks\\active_chunks_report.json",
+        "metadata": {
+          "fast_forward": true
+        }
+      },
+      "detection": {
+        "status": "completed",
+        "started_at": "2025-11-04T16:43:24.724057",
+        "completed_at": "2025-11-04T19:50:04.721312",
+        "output": "data_processing\\1\\events\\events_summary.json",
+        "metadata": {
+          "total_events": 0
+        }
+      },
+      "labeling": {
+        "status": "completed",
+        "started_at": "2025-11-04T19:50:04.745066",
+        "completed_at": "2025-11-04T19:50:04.758125",
+        "output": "data_processing\\1\\proposals\\proposals_metadata.json",
+        "metadata": {
+          "total_proposals": 0,
+          "needs_review": 0
+        }
+      },
+      "review": {
+        "status": "not_started"
+      }
+    },
+    "error": null,
+    "started_at": "2025-10-23T23:23:01.642792",
+    "completed_at": null
+  }
+}

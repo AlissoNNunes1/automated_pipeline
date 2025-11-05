@@ -696,8 +696,8 @@ class AutomatedPipeline:
                 min_aspect_ratio=cfg.get('min_aspect_ratio', 0.3),
                 max_aspect_ratio=cfg.get('max_aspect_ratio', 4.0),
                 min_local_motion_ratio=cfg.get('min_local_motion_ratio', 0.01),
-                ignore_zones=cfg.get('ignore_zones', []),
-                ignore_overlap_threshold=cfg.get('ignore_overlap_threshold', 0.5)
+              
+                
             )
             
             active_chunks, stats = activity_filter.filter_inactive_chunks(
@@ -761,8 +761,7 @@ class AutomatedPipeline:
                     min_track_confidence_avg=cfg.get('min_track_confidence_avg', 0.55),
                     require_motion_for_event=cfg.get('require_motion_for_event', True),
                     min_track_movement_pixels=cfg.get('min_track_movement_pixels', 12.0),
-                    ignore_zones=cfg.get('ignore_zones', []),
-                    ignore_overlap_threshold=cfg.get('ignore_overlap_threshold', 0.5)
+                    
                 )
                 self.logger.info("EventDetector carregado com sucesso!")
 

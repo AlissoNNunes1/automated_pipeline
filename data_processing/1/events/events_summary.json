@@ -1,0 +1,25 @@
+{
+  "statistics": {
+    "total_chunks": 190,
+    "total_events": 0,
+    "total_tracks": 0,
+    "events_by_duration": {
+      "<1s": 0,
+      "1-5s": 0,
+      "5-15s": 0,
+      "15-30s": 0,
+      ">30s": 0
+    },
+    "processing_time_seconds": 11199.242276,
+    "start_time": "2025-11-04T16:43:25.470956",
+    "end_time": "2025-11-04T19:50:04.713232"
+  },
+  "events": [],
+  "detector_config": {
+    "model": "yolo11n.pt",
+    "tracker": "bytetrack.yaml",
+    "confidence_threshold": 0.35,
+    "iou_threshold": 0.5,
+    "min_duration_seconds": 0.6
+  }
+}
