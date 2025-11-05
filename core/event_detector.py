@@ -300,6 +300,9 @@ class EventDetector:
         
         print(f"  -> Processando frames do chunk (sample_rate={self.sample_rate})...", flush=True)
         
+        total_detections = 0
+        frames_with_detections = 0
+        
         for frame_idx, result in enumerate(results):
             frame_count += 1
             
@@ -320,6 +323,17 @@ class EventDetector:
                 except Exception:
                     frame_w, frame_h = None, None
 
+            # Debug: verificar se há detecções
+            has_boxes = result.boxes is not None
+            boxes_obj = result.boxes if has_boxes else None
+            has_ids = has_boxes and hasattr(boxes_obj, 'id') and boxes_obj.id is not None  # type: ignore
+            
+            if has_boxes and not has_ids:
+                # Tem detecções mas sem IDs de tracking
+                num_boxes = len(boxes_obj) if boxes_obj is not None and hasattr(boxes_obj, '__len__') else 0
+                if frames_processed <= 5 or frames_processed % 500 == 0:
+                    print(f"     Frame {frames_processed}: {num_boxes} deteccoes SEM tracking IDs!", flush=True)
+            
             if result.boxes is not None and result.boxes.id is not None:
                 boxes = result.boxes
                 # Normalizar saidas para listas python de forma robusta
@@ -376,8 +390,12 @@ class EventDetector:
                         'bbox': bbox,  # [x1, y1, x2, y2]
                         'confidence': conf
                     })
+                    total_detections += 1
+        
+                frames_with_detections += 1
         
         print(f"  -> {frame_count} frames totais, {frames_processed} processados, {len(tracks)} tracks encontrados", flush=True)
+        print(f"  -> Total de deteccoes validas: {total_detections} em {frames_with_detections} frames", flush=True)
         self.logger.info(f"  -> {len(tracks)} tracks encontrados, filtrando eventos...")
         
         # Converter tracks em eventos
