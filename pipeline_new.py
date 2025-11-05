@@ -760,8 +760,7 @@ class AutomatedPipeline:
                     min_track_length=cfg.get('min_track_length', 15),
                     min_track_confidence_avg=cfg.get('min_track_confidence_avg', 0.55),
                     require_motion_for_event=cfg.get('require_motion_for_event', True),
-                    min_track_movement_pixels=cfg.get('min_track_movement_pixels', 12.0),
-                    
+                    min_track_movement_pixels=cfg.get('min_track_movement_pixels', 12.0)
                 )
                 self.logger.info("EventDetector carregado com sucesso!")
 

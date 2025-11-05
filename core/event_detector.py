@@ -56,8 +56,7 @@ class EventDetector:
         min_track_length: int = 15,
         min_track_confidence_avg: float = 0.55,
         require_motion_for_event: bool = True,
-        min_track_movement_pixels: float = 12.0,
-        
+        min_track_movement_pixels: float = 12.0
     ):
         """
         Inicializa EventDetector
@@ -371,10 +370,6 @@ class EventDetector:
                     if not (self.min_aspect_ratio <= aspect_ratio <= self.max_aspect_ratio):
                         continue  # Aspect ratio invalido
                     
-                    # Ignorar se bbox sobrepoe zonas de ignore
-                    if self._bbox_overlaps_ignore((x1, y1, x2, y2), frame_w, frame_h):
-                        continue
-
                     # Bbox valida, adicionar ao track
                     tracks[track_id].append({
                         'frame': frame_idx,
@@ -389,9 +384,21 @@ class EventDetector:
         fps = chunk_info.get('fps', 30.0)  # Default 30 FPS
         events = []
         
+        # Contadores de filtragem para diagnostico
+        filter_stats = {
+            'total_tracks': len(tracks),
+            'rejected_track_length': 0,
+            'rejected_duration': 0,
+            'rejected_confidence': 0,
+            'rejected_movement': 0,
+            'accepted': 0
+        }
+        
         for track_id, detections in tracks.items():
             # Filtrar eventos muito curtos (minimo de deteccoes)
             if len(detections) < self.min_track_length:
+                filter_stats['rejected_track_length'] += 1
+                self.logger.debug(f"    Track {track_id}: rejeitado por track_length ({len(detections)} < {self.min_track_length})")
                 continue
             
             start_frame = detections[0]['frame']
@@ -399,11 +406,15 @@ class EventDetector:
             duration = (end_frame - start_frame) / fps
             
             if duration < self.min_duration_seconds:
+                filter_stats['rejected_duration'] += 1
+                self.logger.debug(f"    Track {track_id}: rejeitado por duracao ({duration:.2f}s < {self.min_duration_seconds}s)")
                 continue
             
             # Calcular estatisticas
             avg_conf = sum(d['confidence'] for d in detections) / len(detections)
             if avg_conf < self.min_track_confidence_avg:
+                filter_stats['rejected_confidence'] += 1
+                self.logger.debug(f"    Track {track_id}: rejeitado por confianca ({avg_conf:.2f} < {self.min_track_confidence_avg})")
                 continue
             
             # Calcular movimento (distancia entre primeira e ultima bbox)
@@ -425,7 +436,12 @@ class EventDetector:
             )**0.5
             if self.require_motion_for_event and movement_distance < self.min_track_movement_pixels:
                 # Poco movimento entre inicio e fim do track (possivel objeto estatico)
+                filter_stats['rejected_movement'] += 1
+                self.logger.debug(f"    Track {track_id}: rejeitado por movimento ({movement_distance:.1f}px < {self.min_track_movement_pixels}px)")
                 continue
+            
+            # Track passou por todos os filtros
+            filter_stats['accepted'] += 1
             
             # Criar evento
             event = {
@@ -445,8 +461,25 @@ class EventDetector:
             
             events.append(event)
         
+        # Log estatisticas de filtragem
+        print(f"  -> Filtragem: {filter_stats['total_tracks']} tracks | "
+              f"Rejeitados: length={filter_stats['rejected_track_length']}, "
+              f"duration={filter_stats['rejected_duration']}, "
+              f"conf={filter_stats['rejected_confidence']}, "
+              f"motion={filter_stats['rejected_movement']} | "
+              f"ACEITOS: {filter_stats['accepted']}", flush=True)
+        
+        self.logger.info(
+            f"  -> Estatisticas de filtragem: "
+            f"total={filter_stats['total_tracks']}, "
+            f"rej_length={filter_stats['rejected_track_length']}, "
+            f"rej_duration={filter_stats['rejected_duration']}, "
+            f"rej_conf={filter_stats['rejected_confidence']}, "
+            f"rej_motion={filter_stats['rejected_movement']}, "
+            f"aceitos={filter_stats['accepted']}"
+        )
+        
         return events
-
     
     
     def _save_events(
