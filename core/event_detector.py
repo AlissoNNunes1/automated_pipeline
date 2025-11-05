@@ -302,6 +302,14 @@ class EventDetector:
         
         total_detections = 0
         frames_with_detections = 0
+        yolo_detections_without_ids = 0
+        yolo_detections_with_ids = 0
+        bbox_filter_stats = {
+            'raw_detections': 0,
+            'rejected_area': 0,
+            'rejected_aspect': 0,
+            'accepted': 0
+        }
         
         for frame_idx, result in enumerate(results):
             frame_count += 1
@@ -331,6 +339,7 @@ class EventDetector:
             if has_boxes and not has_ids:
                 # Tem detecções mas sem IDs de tracking
                 num_boxes = len(boxes_obj) if boxes_obj is not None and hasattr(boxes_obj, '__len__') else 0
+                yolo_detections_without_ids += num_boxes
                 if frames_processed <= 5 or frames_processed % 500 == 0:
                     print(f"     Frame {frames_processed}: {num_boxes} deteccoes SEM tracking IDs!", flush=True)
             
@@ -369,6 +378,9 @@ class EventDetector:
                 xyxy = _to_list(xyxy_attr, cast=float)
                 
                 for track_id, conf, bbox in zip(track_ids, confidences, xyxy):
+                    bbox_filter_stats['raw_detections'] += 1
+                    yolo_detections_with_ids += 1
+                    
                     x1, y1, x2, y2 = bbox
                     
                     # Validar qualidade da bbox
@@ -379,10 +391,18 @@ class EventDetector:
                     
                     # Filtros de qualidade
                     if not (self.min_bbox_area <= area <= self.max_bbox_area):
+                        bbox_filter_stats['rejected_area'] += 1
+                        if bbox_filter_stats['rejected_area'] <= 3:
+                            print(f"       Bbox rejeitada por area: {area:.0f} (limites: {self.min_bbox_area}-{self.max_bbox_area})", flush=True)
                         continue  # Bbox muito pequena ou muito grande
                     
                     if not (self.min_aspect_ratio <= aspect_ratio <= self.max_aspect_ratio):
+                        bbox_filter_stats['rejected_aspect'] += 1
+                        if bbox_filter_stats['rejected_aspect'] <= 3:
+                            print(f"       Bbox rejeitada por aspect: {aspect_ratio:.2f} (limites: {self.min_aspect_ratio}-{self.max_aspect_ratio})", flush=True)
                         continue  # Aspect ratio invalido
+                    
+                    bbox_filter_stats['accepted'] += 1
                     
                     # Bbox valida, adicionar ao track
                     tracks[track_id].append({
@@ -395,6 +415,11 @@ class EventDetector:
                 frames_with_detections += 1
         
         print(f"  -> {frame_count} frames totais, {frames_processed} processados, {len(tracks)} tracks encontrados", flush=True)
+        print(f"  -> YOLO: {yolo_detections_with_ids} deteccoes COM IDs, {yolo_detections_without_ids} SEM IDs do ByteTrack", flush=True)
+        print(f"  -> Filtros de bbox: {bbox_filter_stats['raw_detections']} deteccoes brutas, "
+              f"{bbox_filter_stats['rejected_area']} rejeitadas por area, "
+              f"{bbox_filter_stats['rejected_aspect']} por aspect ratio, "
+              f"{bbox_filter_stats['accepted']} aceitas", flush=True)
         print(f"  -> Total de deteccoes validas: {total_detections} em {frames_with_detections} frames", flush=True)
         self.logger.info(f"  -> {len(tracks)} tracks encontrados, filtrando eventos...")
         

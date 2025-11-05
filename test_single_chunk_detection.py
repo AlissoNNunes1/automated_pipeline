@@ -6,6 +6,7 @@ Mostra estatisticas detalhadas de filtragem
 import json
 import logging
 import sys
+import random
 from pathlib import Path
 
 # Setup logging para ver mensagens de debug
@@ -32,8 +33,8 @@ if not active_chunks:
     print("Nenhum chunk ativo encontrado!")
     sys.exit(1)
 
-# Testar apenas primeiro chunk
-test_chunk = active_chunks[0]
+# Selecionar chunk aleatorio
+test_chunk = random.choice(active_chunks)
 
 # Corrigir caminho relativo para absoluto
 from pathlib import Path
@@ -76,6 +77,10 @@ print(f"  min_track_length: {detector.min_track_length}")
 print(f"  min_track_confidence_avg: {detector.min_track_confidence_avg}")
 print(f"  require_motion_for_event: {detector.require_motion_for_event}")
 print(f"  min_track_movement_pixels: {detector.min_track_movement_pixels}")
+print(f"  min_bbox_area: {detector.min_bbox_area}")
+print(f"  max_bbox_area: {detector.max_bbox_area}")
+print(f"  min_aspect_ratio: {detector.min_aspect_ratio}")
+print(f"  max_aspect_ratio: {detector.max_aspect_ratio}")
 print()
 
 # Detectar eventos - passar caminho absoluto
