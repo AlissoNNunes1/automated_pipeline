@@ -4,6 +4,7 @@ Teste direto do YOLO para comparar predict vs track
 
 import json
 import cv2
+import sys
 from pathlib import Path
 from ultralytics import YOLO
 
@@ -17,8 +18,19 @@ if not active_chunks:
     print("Nenhum chunk ativo encontrado!")
     exit(1)
 
-# Usar primeiro chunk para teste consistente
-test_chunk = active_chunks[0]
+# Pegar chunk ID da linha de comando ou usar um especifico
+if len(sys.argv) > 1:
+    chunk_id = sys.argv[1]
+    test_chunk = next((c for c in active_chunks if c['chunk_id'] == chunk_id), None)
+    if test_chunk is None:
+        print(f"Chunk {chunk_id} nao encontrado!")
+        exit(1)
+else:
+    # Procurar chunk_0037 que falhou antes
+    test_chunk = next((c for c in active_chunks if c['chunk_id'] == 'chunk_0037'), None)
+    if test_chunk is None:
+        print("chunk_0037 nao encontrado, usando primeiro chunk")
+        test_chunk = active_chunks[0]
 
 # Corrigir caminho relativo para absoluto
 base_dir = Path(__file__).parent

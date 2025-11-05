@@ -279,10 +279,16 @@ class EventDetector:
         """
         self.logger.info(f"  -> Iniciando tracking no chunk...")
         
+        # CRITICO: Resetar tracker antes de processar novo chunk
+        # Sem isso, o ByteTrack mantem estado do chunk anterior e falha
+        if hasattr(self.detector, 'predictor') and self.detector.predictor is not None:
+            self.detector.predictor.trackers = []
+            self.logger.debug("  -> Tracker resetado para novo chunk")
+        
         # Processar video com tracking (stream=True para evitar acumulo de RAM)
         results = self.detector.track(
             source=chunk_path,
-            persist=True,  # Manter IDs entre frames
+            persist=True,  # Manter IDs entre frames DO MESMO chunk
             conf=self.confidence_threshold,
             iou=self.iou_threshold,
             tracker=self.tracker_config,
